@@ -82,7 +82,10 @@ export default function ProductForm({ open, onClose, onSave, product }: Props) {
 
   const startVoiceInput = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    if (!SpeechRecognition) {
+      toast({ title: t('voiceInput'), description: 'Η φωνητική εισαγωγή δεν υποστηρίζεται σε αυτόν τον browser. Δοκίμασε Chrome ή Edge.' });
+      return;
+    }
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'el-GR';
@@ -107,8 +110,6 @@ export default function ProductForm({ open, onClose, onSave, product }: Props) {
     recognitionRef.current?.stop();
     setIsListening(false);
   };
-
-  const hasSpeechAPI = typeof window !== 'undefined' && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
   return (
     <>
