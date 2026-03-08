@@ -547,6 +547,16 @@ export default function ShoppingListPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Full-size image preview */}
+      {fullImageSrc && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-8"
+          onClick={() => setFullImageSrc(null)}
+        >
+          <img src={fullImageSrc} alt="" className="max-w-full max-h-full rounded-2xl object-contain" />
+        </div>
+      )}
     </div>
   );
 }
