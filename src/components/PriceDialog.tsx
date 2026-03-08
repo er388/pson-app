@@ -36,18 +36,18 @@ export default function PriceDialog({ open, productName, onClose, onConfirm }: P
           <DialogTitle className="text-base">{t('enterPrice')}</DialogTitle>
           <p className="text-sm text-muted-foreground">{productName}</p>
         </DialogHeader>
-        <div className="space-y-3">
-          <div>
-            <Label className="text-xs">{t('price')}</Label>
-            <Input type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} placeholder="0.00" inputMode="decimal" />
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">{t('price')}</Label>
+            <Input type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} placeholder="0.00" inputMode="decimal" className="h-10" />
           </div>
-          <div>
-            <Label className="text-xs">{t('discount')}</Label>
-            <Input type="number" step="1" value={discount} onChange={e => setDiscount(e.target.value)} placeholder="0" inputMode="numeric" />
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">{t('discount')}</Label>
+            <Input type="number" step="1" value={discount} onChange={e => setDiscount(e.target.value)} placeholder="0" inputMode="numeric" className="h-10" />
           </div>
-          <div className="flex gap-2">
-            <Button variant="ghost" className="flex-1" onClick={handleSkip}>Skip</Button>
-            <Button className="flex-1" onClick={handleConfirm}>{t('confirm')}</Button>
+          <div className="flex gap-2 pt-2">
+            <Button variant="ghost" className="flex-1 h-10" onClick={handleSkip}>Skip</Button>
+            <Button className="flex-1 h-10" onClick={handleConfirm}>{t('confirm')}</Button>
           </div>
         </div>
       </DialogContent>

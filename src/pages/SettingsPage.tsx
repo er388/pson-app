@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Globe, Moon, Store, Plus, Trash2, ShoppingCart } from 'lucide-react';
+import { Globe, Moon, Store, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -92,9 +92,9 @@ export default function SettingsPage() {
       </section>
 
       {/* App info */}
-      <section className="text-center pt-6">
+      <section className="text-center pt-8">
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-3">
-          <ShoppingCart size={28} className="text-primary" />
+          <span className="text-2xl font-black text-primary">P</span>
         </div>
         <p className="text-lg font-bold text-foreground">{t('appTitle')}</p>
         <p className="text-xs text-muted-foreground">{t('version')}</p>
