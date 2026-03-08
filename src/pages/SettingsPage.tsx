@@ -98,6 +98,34 @@ export default function SettingsPage() {
       {/* Categories */}
       <CategoryManager />
 
+      {/* Templates */}
+      <section className="mb-6">
+        <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
+          <Bookmark size={14} /> {t('templates')}
+        </h2>
+        {templates.length === 0 ? (
+          <p className="text-sm text-muted-foreground p-3">{t('noTemplates')}</p>
+        ) : (
+          <div className="space-y-1.5">
+            {templates.map(tpl => (
+              <div key={tpl.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border">
+                <Bookmark size={16} className="text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm font-medium text-foreground">{tpl.name}</span>
+                  <p className="text-xs text-muted-foreground">{tpl.items.length} {t('itemsCount')}</p>
+                </div>
+                <button
+                  onClick={() => { removeTemplate(tpl.id); toast({ title: t('templateDeleted') }); }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* Data & Security */}
       <DataManager onDataChanged={() => window.location.reload()} />
 
