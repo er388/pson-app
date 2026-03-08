@@ -336,7 +336,7 @@ export default function ShoppingListPage() {
 
   const handleBarcodeAddToList = () => {
     if (barcodeResult?.product) {
-      addItem(barcodeResult.product.id, 1, activeStoreId);
+      addItemWithDuplicateCheck(barcodeResult.product.id, 1, activeStoreId);
       toast({ title: t('added'), description: productName(barcodeResult.product.id) });
     }
     setBarcodeResult(null);
