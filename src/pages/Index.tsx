@@ -1034,6 +1034,17 @@ export default function ShoppingListPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Duplicate Detection Dialog */}
+      <DuplicateDialog
+        open={!!duplicateInfo}
+        onClose={() => setDuplicateInfo(null)}
+        productName={duplicateInfo ? productName(duplicateInfo.productId) : ''}
+        productCategory={duplicateInfo ? (getProduct(duplicateInfo.productId)?.category || 'other') : 'other'}
+        existingQuantity={duplicateInfo ? (rawItems.find(i => i.productId === duplicateInfo.productId)?.quantity || 1) : 1}
+        onIncreaseQuantity={handleDuplicateIncrease}
+        onAddAgain={handleDuplicateAddAgain}
+      />
+
       {/* Full-size image preview */}
       {fullImageSrc && (
         <div
