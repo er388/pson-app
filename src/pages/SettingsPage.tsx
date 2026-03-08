@@ -8,6 +8,7 @@ import { useStores, useDarkMode, useTemplates } from '@/lib/useStore';
 import CategoryManager from '@/components/CategoryManager';
 import DataManager from '@/components/DataManager';
 import CloudBackup from '@/components/CloudBackup';
+import LoyaltyCardManager from '@/components/LoyaltyCardManager';
 import { toast } from '@/hooks/use-toast';
 
 export default function SettingsPage() {
