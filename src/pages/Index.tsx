@@ -1,39 +1,85 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
-import { Plus, Search, Store, Trash2, Minus, ChevronDown, ChevronUp, CheckCircle2, Share2, Bookmark, BookmarkPlus, Zap } from 'lucide-react';
+import { Plus, Search, Store, Trash2, Minus, ChevronDown, ChevronUp, CheckCircle2, Share2, Bookmark, BookmarkPlus, Zap, Camera, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useI18n } from '@/lib/i18n';
-import { useProducts, useShoppingList, useStores, usePurchaseHistory, useCompletedPurchases, useTemplates } from '@/lib/useStore';
-import { CATEGORY_EMOJI, CATEGORY_COLORS, formatPrice } from '@/lib/types';
+import { useProducts, useShoppingList, useStores, usePurchaseHistory, useCompletedPurchases, useTemplates, useCustomCategories } from '@/lib/useStore';
+import { CATEGORY_EMOJI, CATEGORY_COLORS, formatPrice, Product } from '@/lib/types';
 import AddToListDialog from '@/components/AddToListDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import BarcodeScanner from '@/components/BarcodeScanner';
+import ProductForm from '@/components/ProductForm';
+import { showUndo } from '@/components/UndoSnackbar';
+
+type SortMode = 'category' | 'store' | 'added';
+
+function getStep(unit?: string): number {
+  if (unit === 'kg' || unit === 'lt') return 0.1;
+  if (unit === 'gr' || unit === 'ml') return 50;
+  return 1;
+}
+
+function getMin(unit?: string): number {
+  if (unit === 'kg' || unit === 'lt') return 0.1;
+  if (unit === 'gr' || unit === 'ml') return 50;
+  return 1;
+}
+
+function isDecimalUnit(unit?: string): boolean {
+  return unit === 'kg' || unit === 'lt' || unit === 'gr' || unit === 'ml';
+}
+
+function formatQty(qty: number, unit?: string): string {
+  if (unit === 'kg' || unit === 'lt') return qty % 1 === 0 ? String(qty) : qty.toFixed(1);
+  return String(qty);
+}
 
 export default function ShoppingListPage() {
   const { t, lang } = useI18n();
-  const { products, incrementPurchaseCount } = useProducts();
+  const { products, addProduct, incrementPurchaseCount } = useProducts();
   const { items, addItem, removeItem, removeByProductId, toggleCheck, updateQuantity, clearChecked, clearAll, total, getStoreTotal, activeStoreId, setActiveStoreId, setAllItems, rawItems } = useShoppingList();
   const { stores } = useStores();
   const { addRecord } = usePurchaseHistory();
   const { addPurchase, purchases: completedPurchases } = useCompletedPurchases();
   const { templates, addTemplate, removeTemplate } = useTemplates();
+  const { allCategoryKeys, customCategories } = useCustomCategories();
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
-  const [collapsedStores, setCollapsedStores] = useState<Set<string>>(new Set());
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
   const [showLoadTemplate, setShowLoadTemplate] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [quickAddOpen, setQuickAddOpen] = useState(true);
   const [fullImageSrc, setFullImageSrc] = useState<string | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [barcodeResult, setBarcodeResult] = useState<{ barcode: string; product?: Product } | null>(null);
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [prefillBarcode, setPrefillBarcode] = useState('');
+
+  // Sort mode with persistence
+  const [sortMode, setSortMode] = useState<SortMode>(() => {
+    try { return (localStorage.getItem('smartcart-sort-mode') as SortMode) || 'category'; } catch { return 'category'; }
+  });
+  const handleSortChange = (mode: SortMode) => {
+    setSortMode(mode);
+    localStorage.setItem('smartcart-sort-mode', mode);
+  };
 
   const getProduct = (pid: string) => products.find(p => p.id === pid);
   const productName = (pid: string) => {
     const p = getProduct(pid);
     if (!p) return '?';
     return lang === 'el' ? p.name : (p.nameEn || p.name);
+  };
+
+  const getCatLabel = (key: string) => {
+    const custom = customCategories.find(c => c.id === key);
+    if (custom) return lang === 'el' ? custom.name : (custom.nameEn || custom.name);
+    return t(key as any);
   };
 
   const filteredItems = useMemo(() => {
@@ -45,26 +91,39 @@ export default function ShoppingListPage() {
     });
   }, [items, search, products]);
 
-  const groupedByStore = useMemo(() => {
-    const map = new Map<string | null, typeof filteredItems>();
-    filteredItems.forEach(item => {
-      const key = item.storeId || null;
-      const arr = map.get(key) || [];
-      arr.push(item);
-      map.set(key, arr);
-    });
-    return map;
-  }, [filteredItems]);
+  // Group items based on sort mode
+  const groupedItems = useMemo(() => {
+    if (sortMode === 'added') return null; // flat list
 
-  const storeKeys = useMemo(() => {
-    const keys: (string | null)[] = [];
-    groupedByStore.forEach((_, key) => keys.push(key));
-    return keys.sort((a, b) => {
-      if (a === null) return 1;
-      if (b === null) return -1;
-      return 0;
-    });
-  }, [groupedByStore]);
+    const map = new Map<string, typeof filteredItems>();
+
+    if (sortMode === 'category') {
+      filteredItems.forEach(item => {
+        const p = getProduct(item.productId);
+        const key = p?.category || 'other';
+        const arr = map.get(key) || [];
+        arr.push(item);
+        map.set(key, arr);
+      });
+      // Sort within each category: unchecked first
+      map.forEach((items, key) => {
+        map.set(key, items.sort((a, b) => {
+          if (a.checked && !b.checked) return 1;
+          if (!a.checked && b.checked) return -1;
+          return 0;
+        }));
+      });
+    } else {
+      // store mode
+      filteredItems.forEach(item => {
+        const key = item.storeId || '__none__';
+        const arr = map.get(key) || [];
+        arr.push(item);
+        map.set(key, arr);
+      });
+    }
+    return map;
+  }, [filteredItems, sortMode, products]);
 
   // Frequent products for quick add
   const frequentProducts = useMemo(() => {
@@ -74,7 +133,6 @@ export default function ShoppingListPage() {
         countMap.set(i.productId, (countMap.get(i.productId) || 0) + i.quantity);
       });
     });
-    // If no history, use products sorted by purchaseCount
     if (countMap.size === 0) {
       return products
         .filter(p => p.purchaseCount > 0)
@@ -98,12 +156,21 @@ export default function ShoppingListPage() {
     const item = items.find(i => i.id === id);
     if (!item) return;
     const price = priceStr ? parseFloat(priceStr.replace(',', '.')) : undefined;
-    // We store price directly on the item via toggleCheck logic
-    // But since we removed the dialog, we need a direct price update
-    // Use the setAllItems approach to update price inline
     const updated = rawItems.map(i => i.id === id ? { ...i, price: price || undefined } : i);
     setAllItems(updated);
   }, [items, rawItems, setAllItems]);
+
+  const handleRemoveItem = useCallback((id: string) => {
+    const item = rawItems.find(i => i.id === id);
+    if (!item) return;
+    const p = getProduct(item.productId);
+    const name = p ? (lang === 'el' ? p.name : (p.nameEn || p.name)) : '?';
+    const snapshot = [...rawItems];
+    removeItem(id);
+    showUndo(`"${name}" ${t('removed').toLowerCase()}`, () => {
+      setAllItems(snapshot);
+    });
+  }, [rawItems, removeItem, setAllItems, products, lang, t]);
 
   const handleCompletePurchase = () => {
     const checkedItems = items.filter(i => i.checked);
@@ -124,7 +191,6 @@ export default function ShoppingListPage() {
       total,
     });
 
-    // Record individual price history
     checkedItems.forEach(i => {
       incrementPurchaseCount(i.productId);
       const storeId = i.storeId || activeStoreId;
@@ -137,20 +203,43 @@ export default function ShoppingListPage() {
     toast({ title: t('purchaseCompleted'), description: formatPrice(total) });
   };
 
-  const toggleCollapse = (storeId: string | null) => {
-    const key = storeId || '__none__';
-    setCollapsedStores(prev => {
+  const toggleCollapse = (key: string) => {
+    setCollapsedSections(prev => {
       const n = new Set(prev);
       n.has(key) ? n.delete(key) : n.add(key);
       return n;
     });
   };
 
-  const isCollapsed = (storeId: string | null) => collapsedStores.has(storeId || '__none__');
-
   const checkedCount = items.filter(i => i.checked).length;
   const totalCount = items.length;
-  const hasMultipleStores = storeKeys.length > 1;
+
+  // Barcode scan handler
+  const handleBarcodeScan = (barcode: string) => {
+    setScannerOpen(false);
+    const found = products.find(p => p.barcode === barcode);
+    if (found) {
+      setBarcodeResult({ barcode, product: found });
+    } else {
+      setBarcodeResult({ barcode });
+    }
+  };
+
+  const handleBarcodeAddToList = () => {
+    if (barcodeResult?.product) {
+      addItem(barcodeResult.product.id, 1, activeStoreId);
+      toast({ title: t('added'), description: productName(barcodeResult.product.id) });
+    }
+    setBarcodeResult(null);
+  };
+
+  const handleBarcodeAddToCatalog = () => {
+    if (barcodeResult) {
+      setPrefillBarcode(barcodeResult.barcode);
+      setShowProductForm(true);
+    }
+    setBarcodeResult(null);
+  };
 
   // Share list
   const handleShare = async () => {
@@ -174,7 +263,7 @@ export default function ShoppingListPage() {
         if (!p) return;
         const name = lang === 'el' ? p.name : (p.nameEn || p.name);
         const unit = p.unit || 'τεμ.';
-        let line = `- ${name} ${unit} × ${item.quantity}`;
+        let line = `- ${name} ${unit} × ${formatQty(item.quantity, p.unit)}`;
         if (item.price) {
           line += ` — ${formatPrice(item.price * item.quantity)}`;
         }
@@ -187,16 +276,13 @@ export default function ShoppingListPage() {
     }
 
     if (navigator.share) {
-      try {
-        await navigator.share({ text });
-      } catch { /* user cancelled */ }
+      try { await navigator.share({ text }); } catch { }
     } else {
       await navigator.clipboard.writeText(text);
       toast({ title: t('copied') });
     }
   };
 
-  // Save template
   const handleSaveTemplate = () => {
     if (!templateName.trim()) return;
     addTemplate(
@@ -208,16 +294,12 @@ export default function ShoppingListPage() {
     toast({ title: t('templateSaved') });
   };
 
-  // Load template
   const handleLoadTemplate = (templateId: string, mode: 'merge' | 'replace') => {
     const tpl = templates.find(t => t.id === templateId);
     if (!tpl) return;
     if (mode === 'replace') {
       clearAll();
-      // Small delay to let state settle
-      setTimeout(() => {
-        tpl.items.forEach(i => addItem(i.productId, i.quantity, i.storeId));
-      }, 50);
+      setTimeout(() => { tpl.items.forEach(i => addItem(i.productId, i.quantity, i.storeId)); }, 50);
     } else {
       tpl.items.forEach(i => addItem(i.productId, i.quantity, i.storeId));
     }
@@ -227,7 +309,9 @@ export default function ShoppingListPage() {
 
   const renderItem = (item: typeof items[0]) => {
     const p = getProduct(item.productId);
-    const unitLabel = p?.unit && p.unit !== 'τεμ.' ? p.unit : 'τεμ.';
+    const unit = p?.unit || 'τεμ.';
+    const step = getStep(unit);
+    const min = getMin(unit);
     const isChecked = item.checked;
 
     return (
@@ -239,11 +323,9 @@ export default function ShoppingListPage() {
         exit={{ opacity: 0, x: -100 }}
         className={`flex items-center gap-2 p-2.5 rounded-xl border shadow-sm ${isChecked ? 'bg-muted/50 border-border/50' : 'bg-card border-border'}`}
       >
-        {/* Check circle */}
         <button
           onClick={() => handleCheck(item.id)}
           className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center transition-colors min-w-[28px] min-h-[28px]"
-          style={isChecked ? {} : {}}
         >
           {isChecked ? (
             <span className="w-6 h-6 rounded-full bg-primary flex items-center justify-center">
@@ -256,7 +338,6 @@ export default function ShoppingListPage() {
           )}
         </button>
 
-        {/* Emoji or thumbnail */}
         {p?.image ? (
           <button onClick={() => setFullImageSrc(p.image!)} className="shrink-0">
             <img src={p.image} alt="" className="w-7 h-7 rounded-lg object-cover" />
@@ -267,7 +348,6 @@ export default function ShoppingListPage() {
           </span>
         )}
 
-        {/* Name */}
         <div className="flex-1 min-w-0">
           <p className={`text-sm font-medium truncate ${isChecked ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
             {productName(item.productId)}
@@ -275,58 +355,91 @@ export default function ShoppingListPage() {
           {!isChecked && p?.note && <p className="text-[11px] italic text-muted-foreground truncate">{p.note}</p>}
         </div>
 
-        {/* Inline price */}
         <InlinePriceInput
           value={item.price}
           onChange={(val) => handleUpdatePrice(item.id, val)}
           disabled={isChecked}
         />
 
-        {/* Quantity controls */}
         <div className="flex items-center gap-0.5 shrink-0">
           <button
             onClick={() => {
-              if (item.quantity <= 1) {
-                removeItem(item.id);
+              const newQty = item.quantity - step;
+              if (newQty < min) {
+                handleRemoveItem(item.id);
               } else {
-                updateQuantity(item.id, item.quantity - 1);
+                updateQuantity(item.id, Math.round(newQty * 100) / 100);
               }
             }}
             className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center text-secondary-foreground min-w-[28px] min-h-[28px]"
           >
-            {item.quantity <= 1 ? <Trash2 size={13} className="text-destructive" /> : <Minus size={13} />}
+            {item.quantity <= min ? <Trash2 size={13} className="text-destructive" /> : <Minus size={13} />}
           </button>
           <InlineQuantityInput
             value={item.quantity}
             onChange={(val) => updateQuantity(item.id, val)}
+            unit={unit}
           />
           <button
-            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+            onClick={() => updateQuantity(item.id, Math.round((item.quantity + step) * 100) / 100)}
             className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center text-secondary-foreground min-w-[28px] min-h-[28px]"
           >
             <Plus size={13} />
           </button>
-          <span className="text-[9px] text-muted-foreground w-6 text-center">{unitLabel}</span>
+          <span className="text-[9px] text-muted-foreground w-6 text-center">{unit}</span>
         </div>
       </motion.div>
     );
   };
 
-  const renderStoreSection = (storeId: string | null) => {
-    const storeItems = groupedByStore.get(storeId) || [];
-    const storeName = storeId ? stores.find(s => s.id === storeId)?.name || t('noStore') : t('noStore');
-    const storeTotal = getStoreTotal(storeId);
-    const collapsed = isCollapsed(storeId);
+  const renderCategorySection = (catKey: string, sectionItems: typeof items[0][]) => {
+    const collapsed = collapsedSections.has(catKey);
+    const emoji = CATEGORY_EMOJI[catKey] || '📦';
+    const label = getCatLabel(catKey);
+    const uncheckedCount = sectionItems.filter(i => !i.checked).length;
 
     return (
-      <div key={storeId || 'none'} className="mb-4">
+      <div key={catKey} className="mb-4">
         <button
-          onClick={() => toggleCollapse(storeId)}
+          onClick={() => toggleCollapse(catKey)}
+          className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-secondary/50 mb-2"
+        >
+          <span className="text-sm">{emoji}</span>
+          <span className="text-sm font-semibold text-foreground flex-1 text-left">{label}</span>
+          <span className="text-xs text-muted-foreground">{uncheckedCount}/{sectionItems.length}</span>
+          {collapsed ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronUp size={16} className="text-muted-foreground" />}
+        </button>
+        <AnimatePresence>
+          {!collapsed && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="space-y-1.5 overflow-hidden"
+            >
+              {sectionItems.map(item => renderItem(item))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  };
+
+  const renderStoreSection = (storeKey: string, sectionItems: typeof items[0][]) => {
+    const collapsed = collapsedSections.has(storeKey);
+    const storeId = storeKey === '__none__' ? null : storeKey;
+    const storeName = storeId ? stores.find(s => s.id === storeId)?.name || t('noStore') : t('noStore');
+    const storeTotal = getStoreTotal(storeId);
+
+    return (
+      <div key={storeKey} className="mb-4">
+        <button
+          onClick={() => toggleCollapse(storeKey)}
           className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-secondary/50 mb-2"
         >
           <Store size={16} className="text-muted-foreground shrink-0" />
           <span className="text-sm font-semibold text-foreground flex-1 text-left">{storeName}</span>
-          <span className="text-xs text-muted-foreground">{storeItems.length} {t('itemsCount')}</span>
+          <span className="text-xs text-muted-foreground">{sectionItems.length} {t('itemsCount')}</span>
           {storeTotal > 0 && (
             <span className="text-xs font-medium text-primary">{formatPrice(storeTotal)}</span>
           )}
@@ -340,7 +453,7 @@ export default function ShoppingListPage() {
               exit={{ opacity: 0, height: 0 }}
               className="space-y-1.5 overflow-hidden"
             >
-              {storeItems.map(item => renderItem(item))}
+              {sectionItems.map(item => renderItem(item))}
             </motion.div>
           )}
         </AnimatePresence>
@@ -360,6 +473,10 @@ export default function ShoppingListPage() {
                 {checkedCount}/{totalCount}
               </span>
             )}
+            {/* Barcode scanner */}
+            <button onClick={() => setScannerOpen(true)} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors" title={t('scanBarcode')}>
+              <ScanLine size={18} className="text-muted-foreground" />
+            </button>
             {totalCount > 0 && (
               <>
                 <button onClick={handleShare} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors" title={t('share')}>
@@ -388,6 +505,23 @@ export default function ShoppingListPage() {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Sort mode */}
+        {totalCount > 0 && (
+          <div className="flex gap-1 mb-2">
+            {(['category', 'store', 'added'] as SortMode[]).map(mode => (
+              <button
+                key={mode}
+                onClick={() => handleSortChange(mode)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                  sortMode === mode ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'
+                }`}
+              >
+                {t(mode === 'category' ? 'sortByCategory' : mode === 'store' ? 'sortByStore' : 'sortByAdded')}
+              </button>
+            ))}
+          </div>
+        )}
 
         {totalCount > 3 && (
           <div className="relative mb-2">
@@ -447,8 +581,15 @@ export default function ShoppingListPage() {
           </div>
         )}
 
-        {hasMultipleStores ? (
-          storeKeys.map(storeId => renderStoreSection(storeId))
+        {/* Render based on sort mode */}
+        {sortMode === 'category' && groupedItems ? (
+          Array.from(groupedItems.entries()).map(([key, sectionItems]) =>
+            renderCategorySection(key, sectionItems)
+          )
+        ) : sortMode === 'store' && groupedItems ? (
+          Array.from(groupedItems.entries()).map(([key, sectionItems]) =>
+            renderStoreSection(key, sectionItems)
+          )
         ) : (
           <div className="space-y-1.5">
             <AnimatePresence>
@@ -471,7 +612,7 @@ export default function ShoppingListPage() {
         {total > 0 && (
           <div className="mt-6 p-4 rounded-2xl bg-primary/10 border border-primary/20">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">{hasMultipleStores ? t('grandTotal') : t('total')}</span>
+              <span className="text-sm font-medium text-foreground">{t('total')}</span>
               <span className="text-xl font-bold text-primary">{formatPrice(total)}</span>
             </div>
           </div>
@@ -494,6 +635,60 @@ export default function ShoppingListPage() {
         existingProductIds={items.map(i => i.productId)}
         onAdd={pid => addItem(pid, 1, activeStoreId)}
         onRemove={pid => removeByProductId(pid)}
+      />
+
+      {/* Barcode Scanner */}
+      <BarcodeScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleBarcodeScan}
+      />
+
+      {/* Barcode Result Dialog */}
+      <Dialog open={!!barcodeResult} onOpenChange={() => setBarcodeResult(null)}>
+        <DialogContent className="max-w-xs mx-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base">{t('scanBarcode')}</DialogTitle>
+          </DialogHeader>
+          {barcodeResult?.product ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
+                <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-base ${CATEGORY_COLORS[barcodeResult.product.category]}`}>
+                  {CATEGORY_EMOJI[barcodeResult.product.category]}
+                </span>
+                <div>
+                  <p className="text-sm font-medium text-foreground">{lang === 'el' ? barcodeResult.product.name : (barcodeResult.product.nameEn || barcodeResult.product.name)}</p>
+                  <p className="text-xs text-muted-foreground">{barcodeResult.barcode}</p>
+                </div>
+              </div>
+              <Button className="w-full rounded-xl" onClick={handleBarcodeAddToList}>
+                <Plus size={16} className="mr-1.5" /> {t('addToList')}
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3 text-center">
+              <p className="text-sm text-muted-foreground">{t('barcodeNotFound')}</p>
+              <p className="text-xs text-muted-foreground font-mono">{barcodeResult?.barcode}</p>
+              <Button className="w-full rounded-xl" onClick={handleBarcodeAddToCatalog}>
+                <Plus size={16} className="mr-1.5" /> {t('addToCatalog')}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Product form for barcode add */}
+      <ProductForm
+        open={showProductForm}
+        onClose={() => { setShowProductForm(false); setPrefillBarcode(''); }}
+        onSave={(data) => {
+          const newP = addProduct(data);
+          if (newP) {
+            addItem(newP.id, 1, activeStoreId);
+            toast({ title: t('added') });
+          }
+        }}
+        product={prefillBarcode ? { barcode: prefillBarcode } as any : undefined}
       />
 
       {/* Save Template Dialog */}
@@ -604,18 +799,23 @@ function InlinePriceInput({ value, onChange, disabled }: { value?: number; onCha
   );
 }
 
-function InlineQuantityInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+function InlineQuantityInput({ value, onChange, unit }: { value: number; onChange: (v: number) => void; unit?: string }) {
   const [editing, setEditing] = useState(false);
   const [tempVal, setTempVal] = useState(String(value));
   const inputRef = useRef<HTMLInputElement>(null);
+  const decimal = isDecimalUnit(unit);
+  const step = getStep(unit);
+  const min = getMin(unit);
 
   const commit = () => {
     setEditing(false);
-    const parsed = parseInt(tempVal, 10);
-    if (!parsed || parsed < 1 || isNaN(parsed)) {
-      onChange(1);
+    const parsed = parseFloat(tempVal.replace(',', '.'));
+    if (!parsed || parsed < min || isNaN(parsed)) {
+      onChange(min);
+    } else if (!decimal) {
+      onChange(Math.max(1, Math.round(parsed)));
     } else {
-      onChange(parsed);
+      onChange(Math.round(parsed * 100) / 100);
     }
   };
 
@@ -624,12 +824,18 @@ function InlineQuantityInput({ value, onChange }: { value: number; onChange: (v:
       <input
         ref={inputRef}
         type="text"
-        inputMode="numeric"
+        inputMode="decimal"
         value={tempVal}
-        onChange={e => setTempVal(e.target.value.replace(/\D/g, ''))}
+        onChange={e => {
+          if (decimal) {
+            setTempVal(e.target.value.replace(/[^0-9.,]/g, ''));
+          } else {
+            setTempVal(e.target.value.replace(/\D/g, ''));
+          }
+        }}
         onBlur={commit}
         onKeyDown={e => e.key === 'Enter' && commit()}
-        className="w-8 h-7 text-center text-xs font-semibold bg-background border border-primary rounded-lg outline-none text-foreground"
+        className="w-10 h-7 text-center text-xs font-semibold bg-background border border-primary rounded-lg outline-none text-foreground"
         autoFocus
       />
     );
@@ -637,10 +843,10 @@ function InlineQuantityInput({ value, onChange }: { value: number; onChange: (v:
 
   return (
     <button
-      onClick={() => { setTempVal(String(value)); setEditing(true); }}
-      className="w-8 h-7 text-center text-xs font-semibold text-foreground rounded-lg hover:bg-secondary/50 transition-colors min-w-[32px] min-h-[28px]"
+      onClick={() => { setTempVal(formatQty(value, unit)); setEditing(true); }}
+      className="w-10 h-7 text-center text-xs font-semibold text-foreground rounded-lg hover:bg-secondary/50 transition-colors min-w-[40px] min-h-[28px]"
     >
-      {value}
+      {formatQty(value, unit)}
     </button>
   );
 }

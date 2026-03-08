@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Plus, Search, Edit2, Trash2, Star } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Star, ScanLine } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
@@ -8,15 +8,18 @@ import { CATEGORY_EMOJI, CATEGORY_COLORS, Category, Product } from '@/lib/types'
 import ProductForm from '@/components/ProductForm';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
+import BarcodeScanner from '@/components/BarcodeScanner';
+import { showUndo } from '@/components/UndoSnackbar';
 
 export default function CatalogPage() {
   const { t, lang } = useI18n();
-  const { products, addProduct, updateProduct, deleteProduct, toggleFavorite } = useProducts();
+  const { products, addProduct, updateProduct, deleteProduct, toggleFavorite, setAllProducts } = useProducts();
   const { allCategoryKeys, customCategories } = useCustomCategories();
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState<Category | 'all' | 'favorites'>('all');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   const getCatLabel = (key: string) => {
     const custom = customCategories.find(c => c.id === key);
@@ -32,7 +35,6 @@ export default function CatalogPage() {
       const q = search.toLowerCase();
       list = list.filter(p => p.name.toLowerCase().includes(q) || p.nameEn?.toLowerCase().includes(q));
     }
-    // Sort favorites first
     return [...list].sort((a, b) => {
       if (a.favorite && !b.favorite) return -1;
       if (!a.favorite && b.favorite) return 1;
@@ -59,12 +61,37 @@ export default function CatalogPage() {
     }
   };
 
+  const handleDelete = (p: Product) => {
+    const idx = products.findIndex(pr => pr.id === p.id);
+    const deletedProduct = { ...p };
+    const snapshot = [...products];
+    deleteProduct(p.id);
+    const name = lang === 'el' ? p.name : (p.nameEn || p.name);
+    showUndo(`"${name}" ${t('deleted').toLowerCase()}`, () => {
+      const arr = [...snapshot];
+      setAllProducts(arr);
+    });
+  };
+
   const handleToggleFavorite = (p: Product) => {
     toggleFavorite(p.id);
     toast({
       title: p.favorite ? t('favoriteRemoved') : t('favoriteAdded'),
       duration: 1500,
     });
+  };
+
+  const handleBarcodeScan = (barcode: string) => {
+    setScannerOpen(false);
+    const found = products.find(p => p.barcode === barcode);
+    if (found) {
+      setSearch(lang === 'el' ? found.name : (found.nameEn || found.name));
+      setFilterCat('all');
+    } else {
+      // Open form prefilled with barcode
+      setEditing({ barcode } as any);
+      setFormOpen(true);
+    }
   };
 
   const favCount = products.filter(p => p.favorite).length;
@@ -75,7 +102,13 @@ export default function CatalogPage() {
         <h1 className="text-2xl font-bold text-foreground mb-3">{t('catalog')}</h1>
         <div className="relative mb-3">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('search')} className="pl-9 h-9 rounded-xl text-sm" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('search')} className="pl-9 pr-10 h-9 rounded-xl text-sm" />
+          <button
+            onClick={() => setScannerOpen(true)}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-secondary transition-colors"
+          >
+            <ScanLine size={16} className="text-muted-foreground" />
+          </button>
         </div>
         <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
           <button
@@ -118,7 +151,7 @@ export default function CatalogPage() {
               <div className="space-y-1.5">
                 <AnimatePresence>
                   {prods.map(p => (
-                    <ProductCard key={p.id} product={p} lang={lang} t={t} onEdit={() => { setEditing(p); setFormOpen(true); }} onDelete={() => deleteProduct(p.id)} onToggleFav={() => handleToggleFavorite(p)} />
+                    <ProductCard key={p.id} product={p} lang={lang} t={t} onEdit={() => { setEditing(p); setFormOpen(true); }} onDelete={() => handleDelete(p)} onToggleFav={() => handleToggleFavorite(p)} />
                   ))}
                 </AnimatePresence>
               </div>
@@ -128,7 +161,7 @@ export default function CatalogPage() {
           <div className="space-y-1.5">
             <AnimatePresence>
               {filtered.map(p => (
-                <ProductCard key={p.id} product={p} lang={lang} t={t} onEdit={() => { setEditing(p); setFormOpen(true); }} onDelete={() => deleteProduct(p.id)} onToggleFav={() => handleToggleFavorite(p)} />
+                <ProductCard key={p.id} product={p} lang={lang} t={t} onEdit={() => { setEditing(p); setFormOpen(true); }} onDelete={() => handleDelete(p)} onToggleFav={() => handleToggleFavorite(p)} />
               ))}
             </AnimatePresence>
           </div>
@@ -159,6 +192,12 @@ export default function CatalogPage() {
         onClose={() => { setFormOpen(false); setEditing(null); }}
         onSave={handleSave}
         product={editing}
+      />
+
+      <BarcodeScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleBarcodeScan}
       />
     </div>
   );
@@ -212,7 +251,6 @@ function ProductCard({ product, lang, t, onEdit, onDelete, onToggleFav }: { prod
         </div>
       </motion.div>
 
-      {/* Full-size image preview */}
       {showFullImage && product.image && (
         <div
           className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-8"
