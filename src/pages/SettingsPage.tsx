@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Globe, Moon, Store, Plus, Trash2, Bookmark } from 'lucide-react';
+import { Globe, Moon, Store, Plus, Trash2, Bookmark, ArrowUpFromLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -17,6 +17,9 @@ export default function SettingsPage() {
   const [dark, setDark] = useDarkMode();
   const [newStore, setNewStore] = useState('');
   const { templates, removeTemplate } = useTemplates();
+  const [smartUncheck, setSmartUncheck] = useState(() => {
+    try { return localStorage.getItem('smartcart-smart-uncheck') !== 'false'; } catch { return true; }
+  });
 
   const handleAddStore = () => {
     if (newStore.trim()) {
