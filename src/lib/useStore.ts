@@ -271,6 +271,7 @@ export function exportAppData(): AppData {
     completedPurchases: get('smartcart-completed-purchases') || [],
     customCategories: get('smartcart-custom-categories') || [],
     activeStoreId: get('smartcart-active-store'),
+    templates: get('smartcart-templates') || [],
   };
 }
 
@@ -281,6 +282,7 @@ export function importAppData(data: AppData) {
   localStorage.setItem('smartcart-history', JSON.stringify(data.purchaseHistory || []));
   localStorage.setItem('smartcart-completed-purchases', JSON.stringify(data.completedPurchases || []));
   localStorage.setItem('smartcart-custom-categories', JSON.stringify(data.customCategories || []));
+  localStorage.setItem('smartcart-templates', JSON.stringify(data.templates || []));
   if (data.activeStoreId !== undefined) {
     localStorage.setItem('smartcart-active-store', JSON.stringify(data.activeStoreId));
   }
