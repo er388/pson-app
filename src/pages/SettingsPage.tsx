@@ -5,6 +5,8 @@ import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/lib/i18n';
 import { useStores, useDarkMode } from '@/lib/useStore';
+import CategoryManager from '@/components/CategoryManager';
+import DataManager from '@/components/DataManager';
 
 export default function SettingsPage() {
   const { t, lang, setLang } = useI18n();
@@ -63,7 +65,7 @@ export default function SettingsPage() {
         <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
           <Store size={14} /> {t('stores')}
         </h2>
-        <div className="space-y-2 mb-3">
+        <div className="space-y-1.5 mb-3">
           {stores.map(s => (
             <div key={s.id} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border">
               <Store size={16} className="text-muted-foreground" />
@@ -82,14 +84,20 @@ export default function SettingsPage() {
             value={newStore}
             onChange={e => setNewStore(e.target.value)}
             placeholder={t('storeName')}
-            className="rounded-xl text-sm"
+            className="rounded-xl text-sm h-10"
             onKeyDown={e => e.key === 'Enter' && handleAddStore()}
           />
-          <Button onClick={handleAddStore} size="sm" className="rounded-xl px-4">
+          <Button onClick={handleAddStore} size="sm" className="rounded-xl px-4 h-10">
             <Plus size={16} />
           </Button>
         </div>
       </section>
+
+      {/* Categories */}
+      <CategoryManager />
+
+      {/* Data & Security */}
+      <DataManager onDataChanged={() => window.location.reload()} />
 
       {/* App info */}
       <section className="text-center pt-8">
