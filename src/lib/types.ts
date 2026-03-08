@@ -30,11 +30,11 @@ export const CATEGORY_EMOJI: Record<string, string> = { ...DEFAULT_CATEGORY_EMOJ
 export const CATEGORY_COLORS: Record<string, string> = { ...DEFAULT_CATEGORY_COLORS };
 
 export interface CustomCategory {
-  id: string; // e.g. 'custom_abc123'
-  name: string; // Greek name
+  id: string;
+  name: string;
   nameEn?: string;
   emoji: string;
-  color: string; // tailwind color class
+  color: string;
 }
 
 export interface Product {
@@ -54,6 +54,7 @@ export interface ShoppingItem {
   price?: number;
   discount?: number;
   checkedAt?: string;
+  storeId?: string | null; // which store this item belongs to
 }
 
 export interface Store {
@@ -70,12 +71,28 @@ export interface PurchaseRecord {
   date: string;
 }
 
+// A completed purchase session
+export interface CompletedPurchase {
+  id: string;
+  date: string;
+  storeIds: string[];
+  items: {
+    productId: string;
+    quantity: number;
+    price: number;
+    discount: number;
+    storeId?: string | null;
+  }[];
+  total: number;
+}
+
 // All app data for export/import
 export interface AppData {
   products: Product[];
   shoppingList: ShoppingItem[];
   stores: Store[];
   purchaseHistory: PurchaseRecord[];
+  completedPurchases: CompletedPurchase[];
   customCategories: CustomCategory[];
   activeStoreId: string | null;
 }
