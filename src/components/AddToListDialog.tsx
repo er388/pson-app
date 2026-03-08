@@ -42,7 +42,7 @@ export default function AddToListDialog({ open, onClose, products, existingProdu
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm mx-auto rounded-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-sm mx-auto rounded-2xl max-h-[85vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>{t('addToList')}</DialogTitle>
         </DialogHeader>
@@ -50,7 +50,7 @@ export default function AddToListDialog({ open, onClose, products, existingProdu
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('search')} className="pl-10" />
         </div>
-        <div className="flex gap-1.5 overflow-x-auto pb-2 pt-1 no-scrollbar -mx-1 px-1">
+        <div className="flex gap-1.5 overflow-x-auto pb-2 pt-1 no-scrollbar">
           <button
             onClick={() => setFilterCat('all')}
             className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${filterCat === 'all' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}
