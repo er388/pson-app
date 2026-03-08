@@ -25,6 +25,7 @@ export default function HistoryPage() {
   const [reloadPurchase, setReloadPurchase] = useState<CompletedPurchase | null>(null);
   const [saveTemplateName, setSaveTemplateName] = useState('');
   const [saveTemplateFrom, setSaveTemplateFrom] = useState<CompletedPurchase | null>(null);
+  const [receiptScannerOpen, setReceiptScannerOpen] = useState(false);
 
   const getProductName = (pid: string) => {
     const p = products.find(pr => pr.id === pid);
