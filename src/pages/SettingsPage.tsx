@@ -127,6 +127,9 @@ export default function SettingsPage() {
         )}
       </section>
 
+      {/* Cloud Backup */}
+      <CloudBackup />
+
       {/* Data & Security */}
       <DataManager onDataChanged={() => window.location.reload()} />
 
