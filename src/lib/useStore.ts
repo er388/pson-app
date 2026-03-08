@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Product, ShoppingItem, Store, PurchaseRecord, CompletedPurchase, Category, CustomCategory, AppData, DEFAULT_CATEGORIES, DEFAULT_CATEGORY_EMOJI, DEFAULT_CATEGORY_COLORS, CATEGORY_EMOJI, CATEGORY_COLORS } from './types';
+import { Product, ShoppingItem, Store, PurchaseRecord, CompletedPurchase, Category, CustomCategory, AppData, DEFAULT_CATEGORIES, DEFAULT_CATEGORY_EMOJI, DEFAULT_CATEGORY_COLORS, CATEGORY_EMOJI, CATEGORY_COLORS, ProductUnit } from './types';
 
 function useLocalStorage<T>(key: string, initial: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [value, setValue] = useState<T>(() => {
