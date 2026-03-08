@@ -280,6 +280,9 @@ export default function HistoryPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Receipt Scanner */}
+      <ReceiptScanner open={receiptScannerOpen} onClose={() => setReceiptScannerOpen(false)} />
     </div>
   );
 }
