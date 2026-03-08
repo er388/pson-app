@@ -6,6 +6,7 @@ import { useI18n } from '@/lib/i18n';
 import { useProducts, useShoppingList, useStores, usePurchaseHistory, useCompletedPurchases, useTemplates, useCustomCategories, useBudget } from '@/lib/useStore';
 import { CATEGORY_EMOJI, CATEGORY_COLORS, formatPrice, Product, Budget } from '@/lib/types';
 import AddToListDialog from '@/components/AddToListDialog';
+import DuplicateDialog from '@/components/DuplicateDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
@@ -69,6 +70,12 @@ export default function ShoppingListPage() {
   const [budgetScope, setBudgetScope] = useState<'global' | 'store'>('global');
   const [budgetStoreId, setBudgetStoreId] = useState<string>('');
   const [altSwapItem, setAltSwapItem] = useState<{ itemId: string; productId: string } | null>(null);
+  const [duplicateInfo, setDuplicateInfo] = useState<{ productId: string; pendingStoreId: string | null } | null>(null);
+
+  // Smart uncheck setting
+  const [smartUncheck, setSmartUncheck] = useState(() => {
+    try { return localStorage.getItem('smartcart-smart-uncheck') !== 'false'; } catch { return true; }
+  });
 
   // Sort mode with persistence
   const [sortMode, setSortMode] = useState<SortMode>(() => {
@@ -156,8 +163,69 @@ export default function ShoppingListPage() {
 
   const existingProductIds = useMemo(() => new Set(items.map(i => i.productId)), [items]);
 
+  // Duplicate-aware add
+  const addItemWithDuplicateCheck = useCallback((productId: string, quantity = 1, storeId?: string | null) => {
+    const normalizedName = (name: string) => name.toLowerCase().replace(/\s+/g, ' ').trim();
+    const targetProduct = products.find(p => p.id === productId);
+    
+    // Check by product ID first
+    const existingById = rawItems.find(i => i.productId === productId);
+    if (existingById) {
+      setDuplicateInfo({ productId, pendingStoreId: storeId ?? null });
+      return;
+    }
+    
+    // Check by name (case-insensitive, collapsed spaces)
+    if (targetProduct) {
+      const targetName = normalizedName(targetProduct.name);
+      const existingByName = rawItems.find(i => {
+        const p = products.find(pp => pp.id === i.productId);
+        return p && normalizedName(p.name) === targetName;
+      });
+      if (existingByName) {
+        setDuplicateInfo({ productId: existingByName.productId, pendingStoreId: storeId ?? null });
+        return;
+      }
+    }
+    
+    addItem(productId, quantity, storeId);
+  }, [rawItems, products, addItem]);
+
+  const handleDuplicateIncrease = useCallback(() => {
+    if (!duplicateInfo) return;
+    const existing = rawItems.find(i => i.productId === duplicateInfo.productId);
+    if (existing) {
+      const step = getStep(products.find(p => p.id === duplicateInfo.productId)?.unit);
+      updateQuantity(existing.id, Math.round((existing.quantity + step) * 100) / 100);
+    }
+    setDuplicateInfo(null);
+  }, [duplicateInfo, rawItems, products, updateQuantity]);
+
+  const handleDuplicateAddAgain = useCallback(() => {
+    if (!duplicateInfo) return;
+    addItem(duplicateInfo.productId, 1, duplicateInfo.pendingStoreId);
+    setDuplicateInfo(null);
+  }, [duplicateInfo, addItem]);
+
   const handleCheck = (id: string) => {
+    const item = rawItems.find(i => i.id === id);
+    const wasChecked = item?.checked;
     toggleCheck(id);
+    
+    // Smart uncheck: if unchecking, move to top
+    if (wasChecked && smartUncheck) {
+      setTimeout(() => {
+        const currentItems = [...rawItems];
+        const idx = currentItems.findIndex(i => i.id === id);
+        if (idx > 0) {
+          const [moved] = currentItems.splice(idx, 1);
+          moved.checked = false;
+          moved.checkedAt = undefined;
+          currentItems.unshift(moved);
+          setAllItems(currentItems);
+        }
+      }, 50);
+    }
   };
 
   const handleUpdatePrice = useCallback((id: string, priceStr: string) => {
@@ -268,7 +336,7 @@ export default function ShoppingListPage() {
 
   const handleBarcodeAddToList = () => {
     if (barcodeResult?.product) {
-      addItem(barcodeResult.product.id, 1, activeStoreId);
+      addItemWithDuplicateCheck(barcodeResult.product.id, 1, activeStoreId);
       toast({ title: t('added'), description: productName(barcodeResult.product.id) });
     }
     setBarcodeResult(null);
@@ -652,7 +720,7 @@ export default function ShoppingListPage() {
                         if (inList) {
                           removeByProductId(p.id);
                         } else {
-                          addItem(p.id, 1, activeStoreId);
+                          addItemWithDuplicateCheck(p.id, 1, activeStoreId);
                         }
                       }}
                       className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all active:scale-95 ${
@@ -734,7 +802,7 @@ export default function ShoppingListPage() {
         onClose={() => setShowAdd(false)}
         products={products}
         existingProductIds={items.map(i => i.productId)}
-        onAdd={pid => addItem(pid, 1, activeStoreId)}
+        onAdd={pid => addItemWithDuplicateCheck(pid, 1, activeStoreId)}
         onRemove={pid => removeByProductId(pid)}
       />
 
@@ -965,6 +1033,17 @@ export default function ShoppingListPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Duplicate Detection Dialog */}
+      <DuplicateDialog
+        open={!!duplicateInfo}
+        onClose={() => setDuplicateInfo(null)}
+        productName={duplicateInfo ? productName(duplicateInfo.productId) : ''}
+        productCategory={duplicateInfo ? (getProduct(duplicateInfo.productId)?.category || 'other') : 'other'}
+        existingQuantity={duplicateInfo ? (rawItems.find(i => i.productId === duplicateInfo.productId)?.quantity || 1) : 1}
+        onIncreaseQuantity={handleDuplicateIncrease}
+        onAddAgain={handleDuplicateAddAgain}
+      />
 
       {/* Full-size image preview */}
       {fullImageSrc && (

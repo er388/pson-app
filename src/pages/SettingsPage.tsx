@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Globe, Moon, Store, Plus, Trash2, Bookmark } from 'lucide-react';
+import { Globe, Moon, Store, Plus, Trash2, Bookmark, ArrowUpFromLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -17,6 +17,9 @@ export default function SettingsPage() {
   const [dark, setDark] = useDarkMode();
   const [newStore, setNewStore] = useState('');
   const { templates, removeTemplate } = useTemplates();
+  const [smartUncheck, setSmartUncheck] = useState(() => {
+    try { return localStorage.getItem('smartcart-smart-uncheck') !== 'false'; } catch { return true; }
+  });
 
   const handleAddStore = () => {
     if (newStore.trim()) {
@@ -61,6 +64,17 @@ export default function SettingsPage() {
             <p className="text-sm font-medium text-foreground">{t('darkMode')}</p>
           </div>
           <Switch checked={dark} onCheckedChange={setDark} />
+        </div>
+      </section>
+
+      {/* Smart Uncheck */}
+      <section className="mb-6">
+        <div className="flex items-center gap-3 p-4 rounded-2xl bg-card border border-border">
+          <ArrowUpFromLine size={20} className="text-primary" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">{t('smartUncheck')}</p>
+          </div>
+          <Switch checked={smartUncheck} onCheckedChange={(v) => { setSmartUncheck(v); localStorage.setItem('smartcart-smart-uncheck', String(v)); }} />
         </div>
       </section>
 

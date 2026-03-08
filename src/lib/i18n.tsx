@@ -184,6 +184,13 @@ const translations = {
     noConfirmedItems: 'Δεν υπάρχουν επιβεβαιωμένα προϊόντα',
     receiptSaved: 'Η απόδειξη αποθηκεύτηκε!',
     ocrError: 'Σφάλμα αναγνώρισης',
+    // Duplicate detection
+    duplicateFound: 'Υπάρχει ήδη',
+    alreadyInList: 'Υπάρχει ήδη στη λίστα',
+    increaseQuantity: 'Αύξηση ποσότητας',
+    addAgain: 'Προσθήκη ξανά',
+    // Smart uncheck
+    smartUncheck: 'Αυτόματη μετακίνηση κατά το ξε-τσεκάρισμα',
   },
   en: {
     shoppingList: 'Shopping List',
@@ -366,6 +373,13 @@ const translations = {
     noConfirmedItems: 'No confirmed items',
     receiptSaved: 'Receipt saved!',
     ocrError: 'Recognition error',
+    // Duplicate detection
+    duplicateFound: 'Already exists',
+    alreadyInList: 'Already in list',
+    increaseQuantity: 'Increase quantity',
+    addAgain: 'Add again',
+    // Smart uncheck
+    smartUncheck: 'Auto-move on uncheck',
   },
 } as const;
 
