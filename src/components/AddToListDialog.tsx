@@ -50,10 +50,10 @@ export default function AddToListDialog({ open, onClose, products, existingProdu
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('search')} className="pl-10" />
         </div>
-        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+        <div className="flex gap-1.5 overflow-x-auto pb-2 pt-1 no-scrollbar -mx-1 px-1">
           <button
             onClick={() => setFilterCat('all')}
-            className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterCat === 'all' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}
+            className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${filterCat === 'all' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}
           >
             {t('all')}
           </button>
@@ -61,7 +61,7 @@ export default function AddToListDialog({ open, onClose, products, existingProdu
             <button
               key={c}
               onClick={() => setFilterCat(c)}
-              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterCat === c ? 'bg-primary text-primary-foreground' : CATEGORY_COLORS[c] || 'bg-secondary text-secondary-foreground'}`}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${filterCat === c ? 'bg-primary text-primary-foreground' : CATEGORY_COLORS[c] || 'bg-secondary text-secondary-foreground'}`}
             >
               {CATEGORY_EMOJI[c] || '📦'} {t(c as any)}
             </button>
