@@ -1,13 +1,14 @@
 import { useState, useMemo, useRef, useCallback } from 'react';
-import { Plus, Search, Store, Trash2, Minus, ChevronDown, ChevronUp, CheckCircle2, Share2, Bookmark, BookmarkPlus, Zap, Camera, ScanLine } from 'lucide-react';
+import { Plus, Search, Store, Trash2, Minus, ChevronDown, ChevronUp, CheckCircle2, Share2, Bookmark, BookmarkPlus, Zap, Camera, ScanLine, Wallet, X, ArrowLeftRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useI18n } from '@/lib/i18n';
-import { useProducts, useShoppingList, useStores, usePurchaseHistory, useCompletedPurchases, useTemplates, useCustomCategories } from '@/lib/useStore';
-import { CATEGORY_EMOJI, CATEGORY_COLORS, formatPrice, Product } from '@/lib/types';
+import { useProducts, useShoppingList, useStores, usePurchaseHistory, useCompletedPurchases, useTemplates, useCustomCategories, useBudget } from '@/lib/useStore';
+import { CATEGORY_EMOJI, CATEGORY_COLORS, formatPrice, Product, Budget } from '@/lib/types';
 import AddToListDialog from '@/components/AddToListDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -41,12 +42,13 @@ function formatQty(qty: number, unit?: string): string {
 export default function ShoppingListPage() {
   const { t, lang } = useI18n();
   const { products, addProduct, incrementPurchaseCount } = useProducts();
-  const { items, addItem, removeItem, removeByProductId, toggleCheck, updateQuantity, clearChecked, clearAll, total, getStoreTotal, activeStoreId, setActiveStoreId, setAllItems, rawItems } = useShoppingList();
+  const { items, addItem, removeItem, removeByProductId, toggleCheck, updateQuantity, updateItemProductId, clearChecked, clearAll, total, budgetTotal, getStoreTotal, getStoreBudgetTotal, activeStoreId, setActiveStoreId, setAllItems, rawItems } = useShoppingList();
   const { stores } = useStores();
   const { addRecord } = usePurchaseHistory();
   const { addPurchase, purchases: completedPurchases } = useCompletedPurchases();
   const { templates, addTemplate, removeTemplate } = useTemplates();
   const { allCategoryKeys, customCategories } = useCustomCategories();
+  const { budget, setBudget, clearBudget } = useBudget();
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -59,6 +61,11 @@ export default function ShoppingListPage() {
   const [barcodeResult, setBarcodeResult] = useState<{ barcode: string; product?: Product } | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [prefillBarcode, setPrefillBarcode] = useState('');
+  const [budgetModalOpen, setBudgetModalOpen] = useState(false);
+  const [budgetAmountStr, setBudgetAmountStr] = useState('');
+  const [budgetScope, setBudgetScope] = useState<'global' | 'store'>('global');
+  const [budgetStoreId, setBudgetStoreId] = useState<string>('');
+  const [altSwapItem, setAltSwapItem] = useState<{ itemId: string; productId: string } | null>(null);
 
   // Sort mode with persistence
   const [sortMode, setSortMode] = useState<SortMode>(() => {
@@ -93,7 +100,7 @@ export default function ShoppingListPage() {
 
   // Group items based on sort mode
   const groupedItems = useMemo(() => {
-    if (sortMode === 'added') return null; // flat list
+    if (sortMode === 'added') return null;
 
     const map = new Map<string, typeof filteredItems>();
 
@@ -105,7 +112,6 @@ export default function ShoppingListPage() {
         arr.push(item);
         map.set(key, arr);
       });
-      // Sort within each category: unchecked first
       map.forEach((items, key) => {
         map.set(key, items.sort((a, b) => {
           if (a.checked && !b.checked) return 1;
@@ -114,7 +120,6 @@ export default function ShoppingListPage() {
         }));
       });
     } else {
-      // store mode
       filteredItems.forEach(item => {
         const key = item.storeId || '__none__';
         const arr = map.get(key) || [];
@@ -214,6 +219,37 @@ export default function ShoppingListPage() {
   const checkedCount = items.filter(i => i.checked).length;
   const totalCount = items.length;
 
+  // Budget calculations
+  const currentBudgetSpent = useMemo(() => {
+    if (!budget) return 0;
+    if (budget.scope === 'global') return budgetTotal;
+    return getStoreBudgetTotal(budget.storeId || null);
+  }, [budget, budgetTotal, getStoreBudgetTotal]);
+
+  const budgetPercentage = budget ? Math.min((currentBudgetSpent / budget.amount) * 100, 120) : 0;
+  const budgetExceeded = budget ? currentBudgetSpent > budget.amount : false;
+  const budgetExcessAmount = budget ? currentBudgetSpent - budget.amount : 0;
+
+  const getBudgetColor = () => {
+    if (budgetPercentage > 100) return 'bg-destructive';
+    if (budgetPercentage > 75) return 'bg-orange-500';
+    return 'bg-primary';
+  };
+
+  const handleSetBudget = () => {
+    const amount = parseFloat(budgetAmountStr.replace(',', '.'));
+    if (!amount || amount <= 0) return;
+    setBudget({ amount, scope: budgetScope, storeId: budgetScope === 'store' ? budgetStoreId : undefined });
+    setBudgetModalOpen(false);
+  };
+
+  const openBudgetModal = () => {
+    setBudgetAmountStr(budget ? String(budget.amount).replace('.', ',') : '');
+    setBudgetScope(budget?.scope || 'global');
+    setBudgetStoreId(budget?.storeId || stores[0]?.id || '');
+    setBudgetModalOpen(true);
+  };
+
   // Barcode scan handler
   const handleBarcodeScan = (barcode: string) => {
     setScannerOpen(false);
@@ -239,6 +275,13 @@ export default function ShoppingListPage() {
       setShowProductForm(true);
     }
     setBarcodeResult(null);
+  };
+
+  // Alternative swap
+  const handleSwap = (itemId: string, newProductId: string) => {
+    updateItemProductId(itemId, newProductId);
+    setAltSwapItem(null);
+    toast({ title: t('swapProduct') });
   };
 
   // Share list
@@ -313,6 +356,7 @@ export default function ShoppingListPage() {
     const step = getStep(unit);
     const min = getMin(unit);
     const isChecked = item.checked;
+    const hasAlternatives = p?.alternatives && p.alternatives.length > 0;
 
     return (
       <motion.div
@@ -349,9 +393,20 @@ export default function ShoppingListPage() {
         )}
 
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-medium truncate ${isChecked ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-            {productName(item.productId)}
-          </p>
+          <div className="flex items-center gap-1">
+            <p className={`text-sm font-medium truncate ${isChecked ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+              {productName(item.productId)}
+            </p>
+            {hasAlternatives && !isChecked && (
+              <button
+                onClick={() => setAltSwapItem({ itemId: item.id, productId: item.productId })}
+                className="shrink-0 w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                title={t('alternatives')}
+              >
+                <ArrowLeftRight size={11} />
+              </button>
+            )}
+          </div>
           {!isChecked && p?.note && <p className="text-[11px] italic text-muted-foreground truncate">{p.note}</p>}
         </div>
 
@@ -473,6 +528,10 @@ export default function ShoppingListPage() {
                 {checkedCount}/{totalCount}
               </span>
             )}
+            {/* Budget button */}
+            <button onClick={openBudgetModal} className={`w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors ${budget ? 'text-primary' : 'text-muted-foreground'}`} title={t('budget')}>
+              <Wallet size={18} />
+            </button>
             {/* Barcode scanner */}
             <button onClick={() => setScannerOpen(true)} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors" title={t('scanBarcode')}>
               <ScanLine size={18} className="text-muted-foreground" />
@@ -505,6 +564,38 @@ export default function ShoppingListPage() {
             </SelectContent>
           </Select>
         </div>
+
+        {/* Budget Progress Bar */}
+        {budget && (
+          <div className="mb-3 p-3 rounded-xl bg-card border border-border">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs text-muted-foreground">
+                {t('budgetUsed')} <span className="font-semibold text-foreground">{formatPrice(currentBudgetSpent)}</span> {t('budgetOf')} <span className="font-semibold text-foreground">{formatPrice(budget.amount)}</span>
+              </span>
+              <button onClick={clearBudget} className="w-5 h-5 rounded flex items-center justify-center text-muted-foreground hover:text-destructive">
+                <X size={12} />
+              </button>
+            </div>
+            <div className="relative h-2 rounded-full bg-secondary overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${getBudgetColor()}`}
+                style={{ width: `${Math.min(budgetPercentage, 100)}%` }}
+              />
+            </div>
+            {budget.scope === 'store' && budget.storeId && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                🏪 {stores.find(s => s.id === budget.storeId)?.name}
+              </p>
+            )}
+            {budgetExceeded && (
+              <div className="mt-2 px-2.5 py-1.5 rounded-lg bg-destructive/10 border border-destructive/20">
+                <p className="text-xs font-medium text-destructive">
+                  ⚠️ {t('budgetExceeded')} {formatPrice(budgetExcessAmount)}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Sort mode */}
         {totalCount > 0 && (
@@ -690,6 +781,110 @@ export default function ShoppingListPage() {
         }}
         product={prefillBarcode ? { barcode: prefillBarcode } as any : undefined}
       />
+
+      {/* Budget Modal */}
+      <Dialog open={budgetModalOpen} onOpenChange={setBudgetModalOpen}>
+        <DialogContent className="max-w-xs mx-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base">{t('setBudget')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs font-medium text-foreground mb-1.5 block">{t('budgetAmount')}</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">€</span>
+                <Input
+                  value={budgetAmountStr}
+                  onChange={e => setBudgetAmountStr(e.target.value)}
+                  placeholder="50,00"
+                  inputMode="decimal"
+                  className="pl-8 h-10 rounded-xl"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-foreground mb-1.5 block">{t('budgetScope')}</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setBudgetScope('global')}
+                  className={`flex-1 px-3 py-2 rounded-xl text-xs font-medium border transition-colors ${
+                    budgetScope === 'global' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary text-secondary-foreground border-border'
+                  }`}
+                >
+                  {t('budgetGlobal')}
+                </button>
+                <button
+                  onClick={() => setBudgetScope('store')}
+                  className={`flex-1 px-3 py-2 rounded-xl text-xs font-medium border transition-colors ${
+                    budgetScope === 'store' ? 'bg-primary text-primary-foreground border-primary' : 'bg-secondary text-secondary-foreground border-border'
+                  }`}
+                >
+                  {t('budgetPerStore')}
+                </button>
+              </div>
+            </div>
+            {budgetScope === 'store' && (
+              <Select value={budgetStoreId} onValueChange={setBudgetStoreId}>
+                <SelectTrigger className="h-9 rounded-xl text-sm">
+                  <Store size={14} className="mr-1.5 text-muted-foreground" />
+                  <SelectValue placeholder={t('selectStore')} />
+                </SelectTrigger>
+                <SelectContent>
+                  {stores.map(s => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+            <div className="flex gap-2">
+              {budget && (
+                <Button variant="outline" className="flex-1 h-10 rounded-xl text-destructive" onClick={() => { clearBudget(); setBudgetModalOpen(false); }}>
+                  {t('removeBudget')}
+                </Button>
+              )}
+              <Button className="flex-1 h-10 rounded-xl" onClick={handleSetBudget}>
+                {t('save')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alternatives Swap Dialog */}
+      <Dialog open={!!altSwapItem} onOpenChange={() => setAltSwapItem(null)}>
+        <DialogContent className="max-w-xs mx-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base">{t('alternatives')}</DialogTitle>
+          </DialogHeader>
+          {altSwapItem && (() => {
+            const currentProduct = getProduct(altSwapItem.productId);
+            const alts = currentProduct?.alternatives?.map(id => getProduct(id)).filter(Boolean) as Product[] || [];
+            return (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground mb-2">
+                  {t('swapProduct')}: <span className="font-medium text-foreground">{productName(altSwapItem.productId)}</span>
+                </p>
+                {alts.map(alt => (
+                  <button
+                    key={alt.id}
+                    onClick={() => handleSwap(altSwapItem.itemId, alt.id)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
+                  >
+                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${CATEGORY_COLORS[alt.category]}`}>
+                      {CATEGORY_EMOJI[alt.category]}
+                    </span>
+                    <span className="text-sm font-medium text-foreground flex-1 text-left truncate">
+                      {lang === 'el' ? alt.name : (alt.nameEn || alt.name)}
+                    </span>
+                    <ArrowLeftRight size={14} className="text-primary shrink-0" />
+                  </button>
+                ))}
+                {alts.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">{t('noData')}</p>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* Save Template Dialog */}
       <Dialog open={showSaveTemplate} onOpenChange={setShowSaveTemplate}>
