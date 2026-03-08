@@ -56,9 +56,9 @@ export default function ProductForm({ open, onClose, onSave, product }: Props) {
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label>Barcode</Label>
-            <Input value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="(προαιρετικό)" />
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium">Barcode</Label>
+            <Input value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="(προαιρετικό)" className="h-10" />
           </div>
           <div className="flex gap-2 pt-2">
             <Button variant="outline" className="flex-1" onClick={onClose}>{t('cancel')}</Button>

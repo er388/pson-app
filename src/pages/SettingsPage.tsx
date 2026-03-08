@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Globe, Moon, Store, Plus, Trash2, ShoppingCart } from 'lucide-react';
+import { Globe, Moon, Store, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';

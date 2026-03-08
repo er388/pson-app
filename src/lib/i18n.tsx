@@ -100,7 +100,7 @@ const translations = {
     snacks: 'Snacks',
     other: 'Other',
     itemsCount: 'items',
-    appTitle: 'SmartCart',
+    appTitle: 'Pson.io',
     version: 'Version 1.0',
   },
 } as const;
