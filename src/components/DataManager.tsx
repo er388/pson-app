@@ -90,6 +90,7 @@ export default function DataManager({ onDataChanged }: Props) {
         shoppingList: [],
         stores: getDefaultStores(),
         purchaseHistory: [],
+        completedPurchases: [],
         customCategories: [],
         activeStoreId: null,
       };

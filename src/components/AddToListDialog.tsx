@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Search, Plus, Check } from 'lucide-react';
+import { Search, Plus, Minus, Check } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { Product, CATEGORY_EMOJI, Category, CATEGORY_COLORS } from '@/lib/types';
 import { useCustomCategories } from '@/lib/useStore';
@@ -15,14 +14,15 @@ interface Props {
   products: Product[];
   existingProductIds: string[];
   onAdd: (productId: string) => void;
+  onRemove: (productId: string) => void;
 }
 
-export default function AddToListDialog({ open, onClose, products, existingProductIds, onAdd }: Props) {
+export default function AddToListDialog({ open, onClose, products, existingProductIds, onAdd, onRemove }: Props) {
   const { t, lang } = useI18n();
   const { allCategoryKeys } = useCustomCategories();
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState<Category | 'all'>('all');
-  const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
+  const [justChanged, setJustChanged] = useState<Map<string, 'added' | 'removed'>>(new Map());
 
   const filtered = useMemo(() => {
     let list = products;
@@ -34,10 +34,16 @@ export default function AddToListDialog({ open, onClose, products, existingProdu
     return list.sort((a, b) => b.purchaseCount - a.purchaseCount);
   }, [products, filterCat, search]);
 
-  const handleAdd = (pid: string) => {
-    onAdd(pid);
-    setJustAdded(prev => new Set(prev).add(pid));
-    setTimeout(() => setJustAdded(prev => { const n = new Set(prev); n.delete(pid); return n; }), 1500);
+  const handleToggle = (pid: string) => {
+    const inList = existingProductIds.includes(pid);
+    if (inList) {
+      onRemove(pid);
+      setJustChanged(prev => new Map(prev).set(pid, 'removed'));
+    } else {
+      onAdd(pid);
+      setJustChanged(prev => new Map(prev).set(pid, 'added'));
+    }
+    setTimeout(() => setJustChanged(prev => { const n = new Map(prev); n.delete(pid); return n; }), 1200);
   };
 
   return (
@@ -76,16 +82,23 @@ export default function AddToListDialog({ open, onClose, products, existingProdu
             <AnimatePresence>
               {filtered.map(p => {
                 const inList = existingProductIds.includes(p.id);
-                const added = justAdded.has(p.id);
+                const changeState = justChanged.get(p.id);
                 return (
-                  <motion.div
+                  <motion.button
                     key={p.id}
+                    layout
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border"
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => handleToggle(p.id)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-colors min-h-[52px] text-left ${
+                      inList
+                        ? 'bg-primary/5 border-primary/20'
+                        : 'bg-card border-border'
+                    }`}
                   >
-                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${CATEGORY_COLORS[p.category]}`}>
-                      {CATEGORY_EMOJI[p.category]}
+                    <span className={`w-9 h-9 rounded-lg flex items-center justify-center text-sm shrink-0 ${CATEGORY_COLORS[p.category] || 'bg-secondary'}`}>
+                      {CATEGORY_EMOJI[p.category] || '📦'}
                     </span>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm text-foreground truncate">
@@ -93,16 +106,22 @@ export default function AddToListDialog({ open, onClose, products, existingProdu
                       </p>
                       <p className="text-xs text-muted-foreground">{t(p.category as any)}</p>
                     </div>
-                    <Button
-                      size="sm"
-                      variant={inList || added ? 'secondary' : 'default'}
-                      className="h-8 w-8 p-0 rounded-lg"
-                      onClick={() => handleAdd(p.id)}
-                      disabled={inList}
+                    {changeState && (
+                      <span className={`text-[10px] font-medium shrink-0 ${changeState === 'added' ? 'text-primary' : 'text-destructive'}`}>
+                        {changeState === 'added' ? t('added') : t('removed')}
+                      </span>
+                    )}
+                    <motion.div
+                      whileTap={{ scale: 1.2 }}
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        inList
+                          ? 'bg-destructive/10 text-destructive'
+                          : 'bg-primary text-primary-foreground'
+                      }`}
                     >
-                      {inList || added ? <Check size={16} /> : <Plus size={16} />}
-                    </Button>
-                  </motion.div>
+                      {inList ? <Minus size={18} /> : <Plus size={18} />}
+                    </motion.div>
+                  </motion.button>
                 );
               })}
             </AnimatePresence>

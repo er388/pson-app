@@ -1,12 +1,13 @@
 import { ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Package, Settings } from 'lucide-react';
+import { ShoppingCart, Package, Settings, BarChart3 } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { motion } from 'framer-motion';
 
 const tabs = [
   { path: '/', icon: ShoppingCart, labelKey: 'shoppingList' as const },
   { path: '/catalog', icon: Package, labelKey: 'catalog' as const },
+  { path: '/stats', icon: BarChart3, labelKey: 'statistics' as const },
   { path: '/settings', icon: Settings, labelKey: 'settings' as const },
 ];
 
@@ -28,20 +29,20 @@ export default function Layout({ children }: { children: ReactNode }) {
               <button
                 key={tab.path}
                 onClick={() => navigate(tab.path)}
-                className="relative flex flex-col items-center gap-0.5 px-4 py-2 transition-colors"
+                className="relative flex flex-col items-center gap-0.5 px-3 py-2 transition-colors"
               >
                 {active && (
                   <motion.div
                     layoutId="tab-indicator"
-                    className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-full"
+                    className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-10 h-1 bg-primary rounded-full"
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
                 <tab.icon
-                  size={22}
+                  size={20}
                   className={active ? 'text-primary' : 'text-muted-foreground'}
                 />
-                <span className={`text-[11px] font-medium ${active ? 'text-primary' : 'text-muted-foreground'}`}>
+                <span className={`text-[10px] font-medium ${active ? 'text-primary' : 'text-muted-foreground'}`}>
                   {t(tab.labelKey)}
                 </span>
               </button>
