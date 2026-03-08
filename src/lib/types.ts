@@ -137,12 +137,3 @@ export interface AppData {
   templates?: ListTemplate[];
   loyaltyCards?: LoyaltyCard[];
 }
-  products: Product[];
-  shoppingList: ShoppingItem[];
-  stores: Store[];
-  purchaseHistory: PurchaseRecord[];
-  completedPurchases: CompletedPurchase[];
-  customCategories: CustomCategory[];
-  activeStoreId: string | null;
-  templates?: ListTemplate[];
-}
