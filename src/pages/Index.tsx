@@ -6,6 +6,7 @@ import { useI18n } from '@/lib/i18n';
 import { useProducts, useShoppingList, useStores, usePurchaseHistory, useCompletedPurchases, useTemplates, useCustomCategories, useBudget } from '@/lib/useStore';
 import { CATEGORY_EMOJI, CATEGORY_COLORS, formatPrice, Product, Budget } from '@/lib/types';
 import AddToListDialog from '@/components/AddToListDialog';
+import DuplicateDialog from '@/components/DuplicateDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Progress } from '@/components/ui/progress';
