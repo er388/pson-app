@@ -19,6 +19,7 @@ interface Props {
 
 export default function AddToListDialog({ open, onClose, products, existingProductIds, onAdd }: Props) {
   const { t, lang } = useI18n();
+  const { allCategoryKeys } = useCustomCategories();
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState<Category | 'all'>('all');
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
