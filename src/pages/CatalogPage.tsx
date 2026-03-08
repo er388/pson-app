@@ -165,42 +165,62 @@ export default function CatalogPage() {
 }
 
 function ProductCard({ product, lang, t, onEdit, onDelete, onToggleFav }: { product: Product; lang: string; t: any; onEdit: () => void; onDelete: () => void; onToggleFav: () => void }) {
+  const [showFullImage, setShowFullImage] = useState(false);
+
   return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border shadow-sm"
-    >
-      <span className={`w-9 h-9 rounded-xl flex items-center justify-center text-base ${CATEGORY_COLORS[product.category]}`}>
-        {CATEGORY_EMOJI[product.category]}
-      </span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground truncate">
-          {lang === 'el' ? product.name : (product.nameEn || product.name)}
-          {product.unit && product.unit !== 'τεμ.' && (
-            <span className="text-muted-foreground font-normal ml-1">({product.unit})</span>
+    <>
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border shadow-sm"
+      >
+        {product.image ? (
+          <button onClick={() => setShowFullImage(true)} className="shrink-0">
+            <img src={product.image} alt="" className="w-10 h-10 rounded-xl object-cover border border-border" />
+          </button>
+        ) : (
+          <span className={`w-10 h-10 rounded-xl flex items-center justify-center text-base ${CATEGORY_COLORS[product.category]}`}>
+            {CATEGORY_EMOJI[product.category]}
+          </span>
+        )}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-foreground truncate">
+            {lang === 'el' ? product.name : (product.nameEn || product.name)}
+            {product.unit && product.unit !== 'τεμ.' && (
+              <span className="text-muted-foreground font-normal ml-1">({product.unit})</span>
+            )}
+          </p>
+          {product.nameEn && lang === 'el' && (
+            <p className="text-[11px] text-muted-foreground truncate">{product.nameEn}</p>
           )}
-        </p>
-        {product.nameEn && lang === 'el' && (
-          <p className="text-[11px] text-muted-foreground truncate">{product.nameEn}</p>
-        )}
-        {product.note && (
-          <p className="text-[11px] italic text-muted-foreground truncate">📝 {product.note}</p>
-        )}
-      </div>
-      <div className="flex gap-1">
-        <button onClick={onToggleFav} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-secondary">
-          <Star size={15} className={product.favorite ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'} />
-        </button>
-        <button onClick={onEdit} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors">
-          <Edit2 size={15} />
-        </button>
-        <button onClick={onDelete} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
-          <Trash2 size={15} />
-        </button>
-      </div>
-    </motion.div>
+          {product.note && (
+            <p className="text-[11px] italic text-muted-foreground truncate">📝 {product.note}</p>
+          )}
+        </div>
+        <div className="flex gap-1">
+          <button onClick={onToggleFav} className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-secondary">
+            <Star size={15} className={product.favorite ? 'text-amber-500 fill-amber-500' : 'text-muted-foreground'} />
+          </button>
+          <button onClick={onEdit} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors">
+            <Edit2 size={15} />
+          </button>
+          <button onClick={onDelete} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
+            <Trash2 size={15} />
+          </button>
+        </div>
+      </motion.div>
+
+      {/* Full-size image preview */}
+      {showFullImage && product.image && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-8"
+          onClick={() => setShowFullImage(false)}
+        >
+          <img src={product.image} alt="" className="max-w-full max-h-full rounded-2xl object-contain" />
+        </div>
+      )}
+    </>
   );
 }
