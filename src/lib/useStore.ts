@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Product, ShoppingItem, Store, PurchaseRecord, CompletedPurchase, Category, CustomCategory, AppData, DEFAULT_CATEGORIES, DEFAULT_CATEGORY_EMOJI, DEFAULT_CATEGORY_COLORS, CATEGORY_EMOJI, CATEGORY_COLORS, ProductUnit, ListTemplate, Budget } from './types';
+import { Product, ShoppingItem, Store, PurchaseRecord, CompletedPurchase, Category, CustomCategory, AppData, DEFAULT_CATEGORIES, DEFAULT_CATEGORY_EMOJI, DEFAULT_CATEGORY_COLORS, CATEGORY_EMOJI, CATEGORY_COLORS, ProductUnit, ListTemplate, Budget, LoyaltyCard } from './types';
 
 function useLocalStorage<T>(key: string, initial: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [value, setValue] = useState<T>(() => {
@@ -295,6 +295,24 @@ export function useBudget() {
   }, [setBudget]);
 
   return { budget, setBudget, clearBudget };
+}
+
+export function useLoyaltyCards() {
+  const [cards, setCards] = useLocalStorage<LoyaltyCard[]>('smartcart-loyalty-cards', []);
+
+  const addCard = useCallback((card: Omit<LoyaltyCard, 'id'>) => {
+    setCards(prev => [...prev, { ...card, id: uid() }]);
+  }, [setCards]);
+
+  const removeCard = useCallback((id: string) => {
+    setCards(prev => prev.filter(c => c.id !== id));
+  }, [setCards]);
+
+  const setAllCards = useCallback((newCards: LoyaltyCard[]) => {
+    setCards(newCards);
+  }, [setCards]);
+
+  return { cards, addCard, removeCard, setAllCards };
 }
 
 export function useDarkMode() {

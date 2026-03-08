@@ -16,9 +16,10 @@ interface Props {
   onClose: () => void;
   onSave: (data: { name: string; nameEn?: string; category: Category; barcode?: string; unit?: ProductUnit; note?: string; image?: string; alternatives?: string[] }) => void;
   product?: Product | null;
+  offImageUrl?: string;
 }
 
-export default function ProductForm({ open, onClose, onSave, product }: Props) {
+export default function ProductForm({ open, onClose, onSave, product, offImageUrl }: Props) {
   const { t, lang } = useI18n();
   const { customCategories, allCategoryKeys } = useCustomCategories();
   const { products } = useProducts();
@@ -28,7 +29,7 @@ export default function ProductForm({ open, onClose, onSave, product }: Props) {
   const [barcode, setBarcode] = useState(product?.barcode || '');
   const [unit, setUnit] = useState<ProductUnit>(product?.unit || 'τεμ.');
   const [note, setNote] = useState(product?.note || '');
-  const [image, setImage] = useState<string | undefined>(product?.image);
+  const [image, setImage] = useState<string | undefined>(product?.image || (offImageUrl ? undefined : undefined));
   const [alternatives, setAlternatives] = useState<string[]>(product?.alternatives || []);
   const [altSearch, setAltSearch] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);

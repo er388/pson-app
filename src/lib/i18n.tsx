@@ -163,6 +163,27 @@ const translations = {
     products_count: 'προϊόντα',
     reloadConfirm: 'Πώς θέλεις να φορτώσεις τη λίστα;',
     listReloaded: 'Η λίστα φορτώθηκε!',
+    // Open Food Facts
+    foundOnOFF: 'Βρέθηκε στο Open Food Facts — ελέγξτε τα στοιχεία',
+    // Loyalty Cards
+    loyaltyCards: 'Κάρτες Loyalty',
+    noLoyaltyCards: 'Δεν υπάρχουν κάρτες',
+    addLoyaltyCard: 'Προσθήκη κάρτας',
+    cardName: 'Όνομα κάρτας',
+    cardNamePlaceholder: 'π.χ. Masoutis Club',
+    cardNumber: 'Αριθμός κάρτας',
+    barcodeType: 'Τύπος barcode',
+    tapToClose: 'Πατήστε για κλείσιμο',
+    showCard: 'Δείξε κάρτα',
+    // Receipt OCR
+    scanReceipt: 'Scan Απόδειξης',
+    ocrAccuracyWarning: 'Η ακρίβεια εξαρτάται από την ποιότητα της φωτογραφίας',
+    processingReceipt: 'Επεξεργασία απόδειξης...',
+    recognizedItems: 'Αναγνωρισμένα προϊόντα',
+    noItemsRecognized: 'Δεν αναγνωρίστηκαν προϊόντα',
+    noConfirmedItems: 'Δεν υπάρχουν επιβεβαιωμένα προϊόντα',
+    receiptSaved: 'Η απόδειξη αποθηκεύτηκε!',
+    ocrError: 'Σφάλμα αναγνώρισης',
   },
   en: {
     shoppingList: 'Shopping List',
@@ -324,6 +345,27 @@ const translations = {
     products_count: 'products',
     reloadConfirm: 'How do you want to load the list?',
     listReloaded: 'List reloaded!',
+    // Open Food Facts
+    foundOnOFF: 'Found on Open Food Facts — please verify',
+    // Loyalty Cards
+    loyaltyCards: 'Loyalty Cards',
+    noLoyaltyCards: 'No cards yet',
+    addLoyaltyCard: 'Add card',
+    cardName: 'Card name',
+    cardNamePlaceholder: 'e.g. Store Club Card',
+    cardNumber: 'Card number',
+    barcodeType: 'Barcode type',
+    tapToClose: 'Tap to close',
+    showCard: 'Show card',
+    // Receipt OCR
+    scanReceipt: 'Scan Receipt',
+    ocrAccuracyWarning: 'Accuracy depends on photo quality',
+    processingReceipt: 'Processing receipt...',
+    recognizedItems: 'Recognized items',
+    noItemsRecognized: 'No items recognized',
+    noConfirmedItems: 'No confirmed items',
+    receiptSaved: 'Receipt saved!',
+    ocrError: 'Recognition error',
   },
 } as const;
 

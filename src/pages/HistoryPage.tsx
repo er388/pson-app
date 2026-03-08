@@ -2,13 +2,14 @@ import { useState, useMemo } from 'react';
 import { useI18n } from '@/lib/i18n';
 import { useProducts, useStores, useCompletedPurchases, useShoppingList, useTemplates } from '@/lib/useStore';
 import { formatPrice, CATEGORY_EMOJI, CompletedPurchase } from '@/lib/types';
-import { Calendar, Store, ShoppingCart, RotateCcw, Bookmark, ChevronDown, Eye, Trash2 } from 'lucide-react';
+import { Calendar, Store, ShoppingCart, RotateCcw, Bookmark, ChevronDown, Eye, Trash2, ScanLine } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReceiptScanner from '@/components/ReceiptScanner';
 
 export default function HistoryPage() {
   const { t, lang } = useI18n();
@@ -24,6 +25,7 @@ export default function HistoryPage() {
   const [reloadPurchase, setReloadPurchase] = useState<CompletedPurchase | null>(null);
   const [saveTemplateName, setSaveTemplateName] = useState('');
   const [saveTemplateFrom, setSaveTemplateFrom] = useState<CompletedPurchase | null>(null);
+  const [receiptScannerOpen, setReceiptScannerOpen] = useState(false);
 
   const getProductName = (pid: string) => {
     const p = products.find(pr => pr.id === pid);
@@ -93,7 +95,12 @@ export default function HistoryPage() {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-4 pb-24">
-      <h1 className="text-2xl font-bold text-foreground mb-4">{t('purchaseHistoryList')}</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold text-foreground">{t('purchaseHistoryList')}</h1>
+        <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setReceiptScannerOpen(true)}>
+          <ScanLine size={16} className="mr-1.5" /> {t('scanReceipt')}
+        </Button>
+      </div>
 
       {/* Filters */}
       <div className="flex gap-2 mb-4">
@@ -273,6 +280,9 @@ export default function HistoryPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Receipt Scanner */}
+      <ReceiptScanner open={receiptScannerOpen} onClose={() => setReceiptScannerOpen(false)} />
     </div>
   );
 }

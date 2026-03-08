@@ -116,6 +116,15 @@ export interface ListTemplate {
   createdAt: string;
 }
 
+// Loyalty card
+export interface LoyaltyCard {
+  id: string;
+  name: string;
+  storeId?: string;
+  number: string;
+  format: string; // EAN13, CODE128, QR, EAN8, UPC
+}
+
 // All app data for export/import
 export interface AppData {
   products: Product[];
@@ -126,4 +135,5 @@ export interface AppData {
   customCategories: CustomCategory[];
   activeStoreId: string | null;
   templates?: ListTemplate[];
+  loyaltyCards?: LoyaltyCard[];
 }

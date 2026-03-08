@@ -15,6 +15,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import BarcodeScanner from '@/components/BarcodeScanner';
 import ProductForm from '@/components/ProductForm';
 import { showUndo } from '@/components/UndoSnackbar';
+import { lookupBarcode } from '@/lib/openFoodFacts';
+import { LoyaltyCardQuickButton } from '@/components/LoyaltyCardManager';
 
 type SortMode = 'category' | 'store' | 'added';
 
@@ -58,9 +60,10 @@ export default function ShoppingListPage() {
   const [quickAddOpen, setQuickAddOpen] = useState(true);
   const [fullImageSrc, setFullImageSrc] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
-  const [barcodeResult, setBarcodeResult] = useState<{ barcode: string; product?: Product } | null>(null);
+  const [barcodeResult, setBarcodeResult] = useState<{ barcode: string; product?: Product; offData?: { name: string; category: string; imageUrl?: string; brand?: string } } | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [prefillBarcode, setPrefillBarcode] = useState('');
+  const [prefillOffData, setPrefillOffData] = useState<{ name: string; category: string; imageUrl?: string; brand?: string } | null>(null);
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
   const [budgetAmountStr, setBudgetAmountStr] = useState('');
   const [budgetScope, setBudgetScope] = useState<'global' | 'store'>('global');
@@ -251,13 +254,15 @@ export default function ShoppingListPage() {
   };
 
   // Barcode scan handler
-  const handleBarcodeScan = (barcode: string) => {
+  const handleBarcodeScan = async (barcode: string) => {
     setScannerOpen(false);
     const found = products.find(p => p.barcode === barcode);
     if (found) {
       setBarcodeResult({ barcode, product: found });
     } else {
-      setBarcodeResult({ barcode });
+      // Try Open Food Facts lookup
+      const offResult = await lookupBarcode(barcode);
+      setBarcodeResult({ barcode, offData: offResult || undefined });
     }
   };
 
@@ -272,6 +277,8 @@ export default function ShoppingListPage() {
   const handleBarcodeAddToCatalog = () => {
     if (barcodeResult) {
       setPrefillBarcode(barcodeResult.barcode);
+      // Pass OFF data to product form via state
+      setPrefillOffData(barcodeResult.offData || null);
       setShowProductForm(true);
     }
     setBarcodeResult(null);
@@ -623,6 +630,9 @@ export default function ShoppingListPage() {
       </div>
 
       <div className="px-4 pb-24">
+        {/* Loyalty Card Quick Button */}
+        <LoyaltyCardQuickButton storeId={activeStoreId} />
+
         {/* Quick Add Section */}
         {frequentProducts.length > 0 && (
           <Collapsible open={quickAddOpen} onOpenChange={setQuickAddOpen} className="mb-4">
@@ -756,6 +766,23 @@ export default function ShoppingListPage() {
                 <Plus size={16} className="mr-1.5" /> {t('addToList')}
               </Button>
             </div>
+          ) : barcodeResult?.offData ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50">
+                {barcodeResult.offData.imageUrl && (
+                  <img src={barcodeResult.offData.imageUrl} alt="" className="w-10 h-10 rounded-xl object-cover" />
+                )}
+                <div>
+                  <p className="text-sm font-medium text-foreground">{barcodeResult.offData.name}</p>
+                  {barcodeResult.offData.brand && <p className="text-xs text-muted-foreground">{barcodeResult.offData.brand}</p>}
+                  <p className="text-[10px] text-muted-foreground font-mono">{barcodeResult.barcode}</p>
+                </div>
+              </div>
+              <p className="text-xs text-primary text-center">{t('foundOnOFF')}</p>
+              <Button className="w-full rounded-xl" onClick={handleBarcodeAddToCatalog}>
+                <Plus size={16} className="mr-1.5" /> {t('addToCatalog')}
+              </Button>
+            </div>
           ) : (
             <div className="space-y-3 text-center">
               <p className="text-sm text-muted-foreground">{t('barcodeNotFound')}</p>
@@ -771,7 +798,7 @@ export default function ShoppingListPage() {
       {/* Product form for barcode add */}
       <ProductForm
         open={showProductForm}
-        onClose={() => { setShowProductForm(false); setPrefillBarcode(''); }}
+        onClose={() => { setShowProductForm(false); setPrefillBarcode(''); setPrefillOffData(null); }}
         onSave={(data) => {
           const newP = addProduct(data);
           if (newP) {
@@ -779,7 +806,8 @@ export default function ShoppingListPage() {
             toast({ title: t('added') });
           }
         }}
-        product={prefillBarcode ? { barcode: prefillBarcode } as any : undefined}
+        product={prefillBarcode ? { barcode: prefillBarcode, name: prefillOffData?.name || '', category: prefillOffData?.category || 'other' } as any : undefined}
+        offImageUrl={prefillOffData?.imageUrl}
       />
 
       {/* Budget Modal */}
