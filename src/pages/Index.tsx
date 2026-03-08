@@ -253,13 +253,15 @@ export default function ShoppingListPage() {
   };
 
   // Barcode scan handler
-  const handleBarcodeScan = (barcode: string) => {
+  const handleBarcodeScan = async (barcode: string) => {
     setScannerOpen(false);
     const found = products.find(p => p.barcode === barcode);
     if (found) {
       setBarcodeResult({ barcode, product: found });
     } else {
-      setBarcodeResult({ barcode });
+      // Try Open Food Facts lookup
+      const offResult = await lookupBarcode(barcode);
+      setBarcodeResult({ barcode, offData: offResult || undefined });
     }
   };
 
