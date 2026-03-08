@@ -1,13 +1,17 @@
-export type Category = 'dairy' | 'fruits' | 'meat' | 'bread' | 'beverages' | 'cleaning' | 'personal' | 'frozen' | 'snacks' | 'other';
+// Default built-in category keys
+export type DefaultCategory = 'dairy' | 'fruits' | 'meat' | 'bread' | 'beverages' | 'cleaning' | 'personal' | 'frozen' | 'snacks' | 'other';
 
-export const CATEGORIES: Category[] = ['dairy', 'fruits', 'meat', 'bread', 'beverages', 'cleaning', 'personal', 'frozen', 'snacks', 'other'];
+// Category can be a default key or a custom category id (prefixed with 'custom_')
+export type Category = string;
 
-export const CATEGORY_EMOJI: Record<Category, string> = {
+export const DEFAULT_CATEGORIES: DefaultCategory[] = ['dairy', 'fruits', 'meat', 'bread', 'beverages', 'cleaning', 'personal', 'frozen', 'snacks', 'other'];
+
+export const DEFAULT_CATEGORY_EMOJI: Record<DefaultCategory, string> = {
   dairy: '🥛', fruits: '🍎', meat: '🥩', bread: '🍞', beverages: '🥤',
   cleaning: '🧹', personal: '🧴', frozen: '🧊', snacks: '🍿', other: '📦',
 };
 
-export const CATEGORY_COLORS: Record<Category, string> = {
+export const DEFAULT_CATEGORY_COLORS: Record<DefaultCategory, string> = {
   dairy: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
   fruits: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
   meat: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
@@ -19,6 +23,19 @@ export const CATEGORY_COLORS: Record<Category, string> = {
   snacks: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
   other: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300',
 };
+
+// Legacy aliases for backward compat
+export const CATEGORIES = DEFAULT_CATEGORIES as readonly string[];
+export const CATEGORY_EMOJI: Record<string, string> = { ...DEFAULT_CATEGORY_EMOJI };
+export const CATEGORY_COLORS: Record<string, string> = { ...DEFAULT_CATEGORY_COLORS };
+
+export interface CustomCategory {
+  id: string; // e.g. 'custom_abc123'
+  name: string; // Greek name
+  nameEn?: string;
+  emoji: string;
+  color: string; // tailwind color class
+}
 
 export interface Product {
   id: string;
@@ -51,4 +68,14 @@ export interface PurchaseRecord {
   discount: number;
   storeId: string;
   date: string;
+}
+
+// All app data for export/import
+export interface AppData {
+  products: Product[];
+  shoppingList: ShoppingItem[];
+  stores: Store[];
+  purchaseHistory: PurchaseRecord[];
+  customCategories: CustomCategory[];
+  activeStoreId: string | null;
 }

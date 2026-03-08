@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Search, Plus, Check } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
-import { Product, CATEGORIES, CATEGORY_EMOJI, Category, CATEGORY_COLORS } from '@/lib/types';
+import { Product, CATEGORY_EMOJI, Category, CATEGORY_COLORS } from '@/lib/types';
+import { useCustomCategories } from '@/lib/useStore';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,6 +19,7 @@ interface Props {
 
 export default function AddToListDialog({ open, onClose, products, existingProductIds, onAdd }: Props) {
   const { t, lang } = useI18n();
+  const { allCategoryKeys } = useCustomCategories();
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState<Category | 'all'>('all');
   const [justAdded, setJustAdded] = useState<Set<string>>(new Set());
@@ -55,13 +57,13 @@ export default function AddToListDialog({ open, onClose, products, existingProdu
           >
             {t('all')}
           </button>
-          {CATEGORIES.map(c => (
+          {allCategoryKeys.map(c => (
             <button
               key={c}
               onClick={() => setFilterCat(c)}
-              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterCat === c ? 'bg-primary text-primary-foreground' : CATEGORY_COLORS[c]}`}
+              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterCat === c ? 'bg-primary text-primary-foreground' : CATEGORY_COLORS[c] || 'bg-secondary text-secondary-foreground'}`}
             >
-              {CATEGORY_EMOJI[c]} {t(c as any)}
+              {CATEGORY_EMOJI[c] || '📦'} {t(c as any)}
             </button>
           ))}
         </div>

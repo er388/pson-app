@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Product, ShoppingItem, Store, PurchaseRecord, Category } from './types';
+import { Product, ShoppingItem, Store, PurchaseRecord, Category, CustomCategory, AppData, DEFAULT_CATEGORIES, DEFAULT_CATEGORY_EMOJI, DEFAULT_CATEGORY_COLORS, CATEGORY_EMOJI, CATEGORY_COLORS } from './types';
 
 function useLocalStorage<T>(key: string, initial: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [value, setValue] = useState<T>(() => {
@@ -63,7 +63,11 @@ export function useProducts() {
     setProducts(prev => prev.filter(p => p.id !== id));
   }, [setProducts]);
 
-  return { products, addProduct, updateProduct, deleteProduct };
+  const setAllProducts = useCallback((prods: Product[]) => {
+    setProducts(prods);
+  }, [setProducts]);
+
+  return { products, addProduct, updateProduct, deleteProduct, setAllProducts };
 }
 
 export function useShoppingList() {
@@ -99,13 +103,16 @@ export function useShoppingList() {
     setItems(prev => prev.filter(i => !i.checked));
   }, [setItems]);
 
+  const setAllItems = useCallback((newItems: ShoppingItem[]) => {
+    setItems(newItems);
+  }, [setItems]);
+
   const total = items.reduce((sum, i) => {
     if (!i.checked || !i.price) return sum;
     const discounted = i.price * (1 - (i.discount || 0) / 100);
     return sum + discounted * i.quantity;
   }, 0);
 
-  // Sort: checked first (newest first), then unchecked
   const sortedItems = [...items].sort((a, b) => {
     if (a.checked && !b.checked) return -1;
     if (!a.checked && b.checked) return 1;
@@ -113,7 +120,7 @@ export function useShoppingList() {
     return 0;
   });
 
-  return { items: sortedItems, rawItems: items, addItem, removeItem, toggleCheck, updateQuantity, clearChecked, total, activeStoreId, setActiveStoreId };
+  return { items: sortedItems, rawItems: items, addItem, removeItem, toggleCheck, updateQuantity, clearChecked, total, activeStoreId, setActiveStoreId, setAllItems };
 }
 
 export function useStores() {
@@ -129,7 +136,11 @@ export function useStores() {
     setStores(prev => prev.filter(s => s.id !== id));
   }, [setStores]);
 
-  return { stores, addStore, removeStore };
+  const setAllStores = useCallback((newStores: Store[]) => {
+    setStores(newStores);
+  }, [setStores]);
+
+  return { stores, addStore, removeStore, setAllStores };
 }
 
 export function usePurchaseHistory() {
@@ -139,7 +150,54 @@ export function usePurchaseHistory() {
     setHistory(prev => [...prev, { ...record, id: uid() }]);
   }, [setHistory]);
 
-  return { history, addRecord };
+  const setAllHistory = useCallback((newHistory: PurchaseRecord[]) => {
+    setHistory(newHistory);
+  }, [setHistory]);
+
+  return { history, addRecord, setAllHistory };
+}
+
+export function useCustomCategories() {
+  const [categories, setCategories] = useLocalStorage<CustomCategory[]>('smartcart-custom-categories', []);
+
+  // Sync custom categories into the global CATEGORY_EMOJI/CATEGORY_COLORS maps
+  useEffect(() => {
+    // Reset to defaults first
+    Object.keys(CATEGORY_EMOJI).forEach(k => {
+      if (!(k in DEFAULT_CATEGORY_EMOJI)) delete CATEGORY_EMOJI[k];
+    });
+    Object.keys(CATEGORY_COLORS).forEach(k => {
+      if (!(k in DEFAULT_CATEGORY_COLORS)) delete CATEGORY_COLORS[k];
+    });
+    // Add custom
+    categories.forEach(c => {
+      CATEGORY_EMOJI[c.id] = c.emoji;
+      CATEGORY_COLORS[c.id] = c.color;
+    });
+  }, [categories]);
+
+  const addCategory = useCallback((cat: Omit<CustomCategory, 'id'>) => {
+    const newCat: CustomCategory = { ...cat, id: `custom_${uid()}` };
+    setCategories(prev => [...prev, newCat]);
+    return newCat;
+  }, [setCategories]);
+
+  const updateCategory = useCallback((id: string, updates: Partial<CustomCategory>) => {
+    setCategories(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
+  }, [setCategories]);
+
+  const removeCategory = useCallback((id: string) => {
+    setCategories(prev => prev.filter(c => c.id !== id));
+  }, [setCategories]);
+
+  const setAllCategories = useCallback((cats: CustomCategory[]) => {
+    setCategories(cats);
+  }, [setCategories]);
+
+  // Combined list of all category keys
+  const allCategoryKeys: string[] = [...DEFAULT_CATEGORIES, ...categories.map(c => c.id)];
+
+  return { customCategories: categories, addCategory, updateCategory, removeCategory, setAllCategories, allCategoryKeys };
 }
 
 export function useDarkMode() {
@@ -148,4 +206,38 @@ export function useDarkMode() {
     document.documentElement.classList.toggle('dark', dark);
   }, [dark]);
   return [dark, setDark] as const;
+}
+
+// Export/Import helpers
+export function exportAppData(): AppData {
+  const get = (key: string) => {
+    try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch { return null; }
+  };
+  return {
+    products: get('smartcart-products') || [],
+    shoppingList: get('smartcart-list') || [],
+    stores: get('smartcart-stores') || [],
+    purchaseHistory: get('smartcart-history') || [],
+    customCategories: get('smartcart-custom-categories') || [],
+    activeStoreId: get('smartcart-active-store'),
+  };
+}
+
+export function importAppData(data: AppData) {
+  localStorage.setItem('smartcart-products', JSON.stringify(data.products || []));
+  localStorage.setItem('smartcart-list', JSON.stringify(data.shoppingList || []));
+  localStorage.setItem('smartcart-stores', JSON.stringify(data.stores || []));
+  localStorage.setItem('smartcart-history', JSON.stringify(data.purchaseHistory || []));
+  localStorage.setItem('smartcart-custom-categories', JSON.stringify(data.customCategories || []));
+  if (data.activeStoreId !== undefined) {
+    localStorage.setItem('smartcart-active-store', JSON.stringify(data.activeStoreId));
+  }
+}
+
+export function getDefaultProducts() {
+  return DEFAULT_PRODUCTS.map(p => ({ ...p, id: uid() }));
+}
+
+export function getDefaultStores() {
+  return DEFAULT_STORES.map(s => ({ ...s, id: uid() }));
 }

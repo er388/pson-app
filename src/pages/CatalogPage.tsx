@@ -3,18 +3,25 @@ import { Plus, Search, Edit2, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
-import { useProducts } from '@/lib/useStore';
-import { CATEGORIES, CATEGORY_EMOJI, CATEGORY_COLORS, Category, Product } from '@/lib/types';
+import { useProducts, useCustomCategories } from '@/lib/useStore';
+import { CATEGORY_EMOJI, CATEGORY_COLORS, Category, Product } from '@/lib/types';
 import ProductForm from '@/components/ProductForm';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function CatalogPage() {
   const { t, lang } = useI18n();
   const { products, addProduct, updateProduct, deleteProduct } = useProducts();
+  const { allCategoryKeys, customCategories } = useCustomCategories();
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState<Category | 'all'>('all');
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
+
+  const getCatLabel = (key: string) => {
+    const custom = customCategories.find(c => c.id === key);
+    if (custom) return lang === 'el' ? custom.name : (custom.nameEn || custom.name);
+    return t(key as any);
+  };
 
   const filtered = useMemo(() => {
     let list = products;
@@ -60,16 +67,16 @@ export default function CatalogPage() {
           >
             {t('all')} ({products.length})
           </button>
-          {CATEGORIES.map(c => {
+          {allCategoryKeys.map(c => {
             const count = products.filter(p => p.category === c).length;
             if (count === 0) return null;
             return (
               <button
                 key={c}
                 onClick={() => setFilterCat(c)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${filterCat === c ? 'bg-primary text-primary-foreground' : CATEGORY_COLORS[c]}`}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${filterCat === c ? 'bg-primary text-primary-foreground' : CATEGORY_COLORS[c] || 'bg-secondary text-secondary-foreground'}`}
               >
-                {CATEGORY_EMOJI[c]} {count}
+                {CATEGORY_EMOJI[c] || '📦'} {count}
               </button>
             );
           })}
@@ -81,7 +88,7 @@ export default function CatalogPage() {
           Array.from(grouped.entries()).map(([cat, prods]) => (
             <div key={cat} className="mb-5">
               <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                {CATEGORY_EMOJI[cat]} {t(cat as any)}
+                {CATEGORY_EMOJI[cat] || '📦'} {getCatLabel(cat)}
               </h2>
               <div className="space-y-1.5">
                 <AnimatePresence>
