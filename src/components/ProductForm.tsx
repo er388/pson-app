@@ -161,7 +161,23 @@ export default function ProductForm({ open, onClose, onSave, product }: Props) {
               <Label className="text-xs font-medium">{t('productName')} (EL)</Label>
               <div className="flex gap-2">
                 <Input value={name} onChange={e => setName(e.target.value)} placeholder="π.χ. Γάλα" className="h-10 flex-1" />
-                {hasSpeechAPI && (
+                <Button
+                  type="button"
+                  variant={isListening ? 'destructive' : 'outline'}
+                  size="icon"
+                  className="h-10 w-10 shrink-0 rounded-xl relative"
+                  onClick={isListening ? stopVoiceInput : startVoiceInput}
+                >
+                  {isListening ? (
+                    <>
+                      <MicOff size={18} />
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
+                    </>
+                  ) : (
+                    <Mic size={18} />
+                  )}
+                </Button>
+              </div>
                   <Button
                     type="button"
                     variant={isListening ? 'destructive' : 'outline'}
