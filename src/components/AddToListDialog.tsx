@@ -57,13 +57,13 @@ export default function AddToListDialog({ open, onClose, products, existingProdu
           >
             {t('all')}
           </button>
-          {CATEGORIES.map(c => (
+          {allCategoryKeys.map(c => (
             <button
               key={c}
               onClick={() => setFilterCat(c)}
-              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterCat === c ? 'bg-primary text-primary-foreground' : CATEGORY_COLORS[c]}`}
+              className={`shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors ${filterCat === c ? 'bg-primary text-primary-foreground' : CATEGORY_COLORS[c] || 'bg-secondary text-secondary-foreground'}`}
             >
-              {CATEGORY_EMOJI[c]} {t(c as any)}
+              {CATEGORY_EMOJI[c] || '📦'} {t(c as any)}
             </button>
           ))}
         </div>
