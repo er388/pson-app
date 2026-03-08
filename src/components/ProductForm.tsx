@@ -9,6 +9,7 @@ import { useI18n } from '@/lib/i18n';
 import { Product, DEFAULT_CATEGORIES, CATEGORY_EMOJI, Category, PRODUCT_UNITS, ProductUnit } from '@/lib/types';
 import { useCustomCategories } from '@/lib/useStore';
 import BarcodeScanner from './BarcodeScanner';
+import { toast } from '@/hooks/use-toast';
 
 interface Props {
   open: boolean;
@@ -82,7 +83,10 @@ export default function ProductForm({ open, onClose, onSave, product }: Props) {
 
   const startVoiceInput = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    if (!SpeechRecognition) {
+      toast({ title: t('voiceInput'), description: 'Η φωνητική εισαγωγή δεν υποστηρίζεται σε αυτόν τον browser. Δοκίμασε Chrome ή Edge.' });
+      return;
+    }
 
     const recognition = new SpeechRecognition();
     recognition.lang = 'el-GR';
@@ -107,8 +111,6 @@ export default function ProductForm({ open, onClose, onSave, product }: Props) {
     recognitionRef.current?.stop();
     setIsListening(false);
   };
-
-  const hasSpeechAPI = typeof window !== 'undefined' && ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
 
   return (
     <>
@@ -160,24 +162,22 @@ export default function ProductForm({ open, onClose, onSave, product }: Props) {
               <Label className="text-xs font-medium">{t('productName')} (EL)</Label>
               <div className="flex gap-2">
                 <Input value={name} onChange={e => setName(e.target.value)} placeholder="π.χ. Γάλα" className="h-10 flex-1" />
-                {hasSpeechAPI && (
-                  <Button
-                    type="button"
-                    variant={isListening ? 'destructive' : 'outline'}
-                    size="icon"
-                    className="h-10 w-10 shrink-0 rounded-xl relative"
-                    onClick={isListening ? stopVoiceInput : startVoiceInput}
-                  >
-                    {isListening ? (
-                      <>
-                        <MicOff size={18} />
-                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
-                      </>
-                    ) : (
-                      <Mic size={18} />
-                    )}
-                  </Button>
-                )}
+                <Button
+                  type="button"
+                  variant={isListening ? 'destructive' : 'outline'}
+                  size="icon"
+                  className="h-10 w-10 shrink-0 rounded-xl relative"
+                  onClick={isListening ? stopVoiceInput : startVoiceInput}
+                >
+                  {isListening ? (
+                    <>
+                      <MicOff size={18} />
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
+                    </>
+                  ) : (
+                    <Mic size={18} />
+                  )}
+                </Button>
               </div>
               {isListening && (
                 <p className="text-xs text-destructive animate-pulse flex items-center gap-1">

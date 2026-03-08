@@ -27,6 +27,7 @@ export default function ShoppingListPage() {
   const [showLoadTemplate, setShowLoadTemplate] = useState(false);
   const [templateName, setTemplateName] = useState('');
   const [quickAddOpen, setQuickAddOpen] = useState(true);
+  const [fullImageSrc, setFullImageSrc] = useState<string | null>(null);
 
   const getProduct = (pid: string) => products.find(p => p.id === pid);
   const productName = (pid: string) => {
@@ -257,7 +258,9 @@ export default function ShoppingListPage() {
 
         {/* Emoji or thumbnail */}
         {p?.image ? (
-          <img src={p.image} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+          <button onClick={() => setFullImageSrc(p.image!)} className="shrink-0">
+            <img src={p.image} alt="" className="w-7 h-7 rounded-lg object-cover" />
+          </button>
         ) : (
           <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0 ${p ? CATEGORY_COLORS[p.category] : ''}`}>
             {p ? CATEGORY_EMOJI[p.category] : '?'}
@@ -544,6 +547,16 @@ export default function ShoppingListPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Full-size image preview */}
+      {fullImageSrc && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-8"
+          onClick={() => setFullImageSrc(null)}
+        >
+          <img src={fullImageSrc} alt="" className="max-w-full max-h-full rounded-2xl object-contain" />
+        </div>
+      )}
     </div>
   );
 }
