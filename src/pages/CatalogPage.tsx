@@ -3,8 +3,8 @@ import { Plus, Search, Edit2, Trash2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/lib/i18n';
-import { useProducts } from '@/lib/useStore';
-import { CATEGORIES, CATEGORY_EMOJI, CATEGORY_COLORS, Category, Product } from '@/lib/types';
+import { useProducts, useCustomCategories } from '@/lib/useStore';
+import { CATEGORY_EMOJI, CATEGORY_COLORS, Category, Product } from '@/lib/types';
 import ProductForm from '@/components/ProductForm';
 import { motion, AnimatePresence } from 'framer-motion';
 
