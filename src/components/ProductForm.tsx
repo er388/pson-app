@@ -178,24 +178,6 @@ export default function ProductForm({ open, onClose, onSave, product }: Props) {
                   )}
                 </Button>
               </div>
-                  <Button
-                    type="button"
-                    variant={isListening ? 'destructive' : 'outline'}
-                    size="icon"
-                    className="h-10 w-10 shrink-0 rounded-xl relative"
-                    onClick={isListening ? stopVoiceInput : startVoiceInput}
-                  >
-                    {isListening ? (
-                      <>
-                        <MicOff size={18} />
-                        <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
-                      </>
-                    ) : (
-                      <Mic size={18} />
-                    )}
-                  </Button>
-                )}
-              </div>
               {isListening && (
                 <p className="text-xs text-destructive animate-pulse flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-destructive inline-block" /> {t('listening')}
