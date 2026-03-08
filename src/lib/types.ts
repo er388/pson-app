@@ -51,6 +51,7 @@ export interface Product {
   unit?: ProductUnit;
   note?: string;
   favorite?: boolean;
+  image?: string; // base64 data URL
 }
 
 /** Format a number as € x,xx */
