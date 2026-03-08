@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Product, ShoppingItem, Store, PurchaseRecord, CompletedPurchase, Category, CustomCategory, AppData, DEFAULT_CATEGORIES, DEFAULT_CATEGORY_EMOJI, DEFAULT_CATEGORY_COLORS, CATEGORY_EMOJI, CATEGORY_COLORS, ProductUnit, ListTemplate } from './types';
+import { Product, ShoppingItem, Store, PurchaseRecord, CompletedPurchase, Category, CustomCategory, AppData, DEFAULT_CATEGORIES, DEFAULT_CATEGORY_EMOJI, DEFAULT_CATEGORY_COLORS, CATEGORY_EMOJI, CATEGORY_COLORS, ProductUnit, ListTemplate, Budget } from './types';
 
 function useLocalStorage<T>(key: string, initial: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [value, setValue] = useState<T>(() => {
@@ -111,6 +111,10 @@ export function useShoppingList() {
     setItems(prev => prev.map(i => i.id === id ? { ...i, quantity } : i));
   }, [setItems]);
 
+  const updateItemProductId = useCallback((itemId: string, newProductId: string) => {
+    setItems(prev => prev.map(i => i.id === itemId ? { ...i, productId: newProductId } : i));
+  }, [setItems]);
+
   const clearChecked = useCallback(() => {
     setItems(prev => prev.filter(i => !i.checked));
   }, [setItems]);
@@ -129,10 +133,26 @@ export function useShoppingList() {
     return sum + discounted * i.quantity;
   }, 0);
 
+  // Budget total: all items with price, regardless of checked status
+  const budgetTotal = items.reduce((sum, i) => {
+    if (!i.price) return sum;
+    const discounted = i.price * (1 - (i.discount || 0) / 100);
+    return sum + discounted * i.quantity;
+  }, 0);
+
   const getStoreTotal = useCallback((storeId: string | null) => {
     return items.reduce((sum, i) => {
       if ((i.storeId || null) !== storeId) return sum;
       if (!i.checked || !i.price) return sum;
+      const discounted = i.price * (1 - (i.discount || 0) / 100);
+      return sum + discounted * i.quantity;
+    }, 0);
+  }, [items]);
+
+  const getStoreBudgetTotal = useCallback((storeId: string | null) => {
+    return items.reduce((sum, i) => {
+      if ((i.storeId || null) !== storeId) return sum;
+      if (!i.price) return sum;
       const discounted = i.price * (1 - (i.discount || 0) / 100);
       return sum + discounted * i.quantity;
     }, 0);
@@ -145,7 +165,7 @@ export function useShoppingList() {
     return 0;
   });
 
-  return { items: sortedItems, rawItems: items, addItem, removeItem, removeByProductId, toggleCheck, updateQuantity, clearChecked, clearAll, total, getStoreTotal, activeStoreId, setActiveStoreId, setAllItems };
+  return { items: sortedItems, rawItems: items, addItem, removeItem, removeByProductId, toggleCheck, updateQuantity, updateItemProductId, clearChecked, clearAll, total, budgetTotal, getStoreTotal, getStoreBudgetTotal, activeStoreId, setActiveStoreId, setAllItems };
 }
 
 export function useStores() {
@@ -184,12 +204,28 @@ export function usePurchaseHistory() {
 
 export function useCompletedPurchases() {
   const [purchases, setPurchases] = useLocalStorage<CompletedPurchase[]>('smartcart-completed-purchases', []);
+  const [historyLimit, setHistoryLimit] = useLocalStorage<number>('smartcart-history-limit', 50);
 
   const addPurchase = useCallback((purchase: Omit<CompletedPurchase, 'id'>) => {
-    setPurchases(prev => [...prev, { ...purchase, id: uid() }]);
+    setPurchases(prev => {
+      const updated = [...prev, { ...purchase, id: uid() }];
+      // Enforce history limit
+      if (updated.length > historyLimit) {
+        return updated.slice(updated.length - historyLimit);
+      }
+      return updated;
+    });
+  }, [setPurchases, historyLimit]);
+
+  const removePurchase = useCallback((id: string) => {
+    setPurchases(prev => prev.filter(p => p.id !== id));
   }, [setPurchases]);
 
-  return { purchases, addPurchase };
+  const setAllPurchases = useCallback((ps: CompletedPurchase[]) => {
+    setPurchases(ps);
+  }, [setPurchases]);
+
+  return { purchases, addPurchase, removePurchase, setAllPurchases, historyLimit, setHistoryLimit };
 }
 
 export function useTemplates() {
@@ -249,6 +285,16 @@ export function useCustomCategories() {
   const allCategoryKeys: string[] = [...DEFAULT_CATEGORIES, ...categories.map(c => c.id)];
 
   return { customCategories: categories, addCategory, updateCategory, removeCategory, setAllCategories, allCategoryKeys };
+}
+
+export function useBudget() {
+  const [budget, setBudget] = useLocalStorage<Budget | null>('smartcart-budget', null);
+
+  const clearBudget = useCallback(() => {
+    setBudget(null);
+  }, [setBudget]);
+
+  return { budget, setBudget, clearBudget };
 }
 
 export function useDarkMode() {

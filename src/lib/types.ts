@@ -52,6 +52,15 @@ export interface Product {
   note?: string;
   favorite?: boolean;
   image?: string; // base64 data URL
+  alternatives?: string[]; // up to 3 product IDs
+}
+
+export type BudgetScope = 'global' | 'store';
+
+export interface Budget {
+  amount: number;
+  scope: BudgetScope;
+  storeId?: string;
 }
 
 /** Format a number as € x,xx */

@@ -1,26 +1,27 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Camera, Mic, MicOff, Image as ImageIcon, X } from 'lucide-react';
+import { Camera, Mic, MicOff, Image as ImageIcon, X, Search, Plus } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
-import { Product, DEFAULT_CATEGORIES, CATEGORY_EMOJI, Category, PRODUCT_UNITS, ProductUnit } from '@/lib/types';
-import { useCustomCategories } from '@/lib/useStore';
+import { Product, DEFAULT_CATEGORIES, CATEGORY_EMOJI, CATEGORY_COLORS, Category, PRODUCT_UNITS, ProductUnit } from '@/lib/types';
+import { useCustomCategories, useProducts } from '@/lib/useStore';
 import BarcodeScanner from './BarcodeScanner';
 import { toast } from '@/hooks/use-toast';
 
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSave: (data: { name: string; nameEn?: string; category: Category; barcode?: string; unit?: ProductUnit; note?: string; image?: string }) => void;
+  onSave: (data: { name: string; nameEn?: string; category: Category; barcode?: string; unit?: ProductUnit; note?: string; image?: string; alternatives?: string[] }) => void;
   product?: Product | null;
 }
 
 export default function ProductForm({ open, onClose, onSave, product }: Props) {
   const { t, lang } = useI18n();
   const { customCategories, allCategoryKeys } = useCustomCategories();
+  const { products } = useProducts();
   const [name, setName] = useState(product?.name || '');
   const [nameEn, setNameEn] = useState(product?.nameEn || '');
   const [category, setCategory] = useState<Category>(product?.category || 'other');
@@ -28,11 +29,22 @@ export default function ProductForm({ open, onClose, onSave, product }: Props) {
   const [unit, setUnit] = useState<ProductUnit>(product?.unit || 'τεμ.');
   const [note, setNote] = useState(product?.note || '');
   const [image, setImage] = useState<string | undefined>(product?.image);
+  const [alternatives, setAlternatives] = useState<string[]>(product?.alternatives || []);
+  const [altSearch, setAltSearch] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
+
+  const altSearchResults = useMemo(() => {
+    if (!altSearch.trim()) return [];
+    const q = altSearch.toLowerCase();
+    return products
+      .filter(p => p.id !== product?.id && !alternatives.includes(p.id))
+      .filter(p => p.name.toLowerCase().includes(q) || p.nameEn?.toLowerCase().includes(q))
+      .slice(0, 5);
+  }, [altSearch, products, alternatives, product?.id]);
 
   const handleSave = () => {
     if (!name.trim()) return;
@@ -44,8 +56,9 @@ export default function ProductForm({ open, onClose, onSave, product }: Props) {
       unit,
       note: note.trim().slice(0, 100) || undefined,
       image,
+      alternatives: alternatives.length > 0 ? alternatives : undefined,
     });
-    setName(''); setNameEn(''); setCategory('other'); setBarcode(''); setUnit('τεμ.'); setNote(''); setImage(undefined);
+    setName(''); setNameEn(''); setCategory('other'); setBarcode(''); setUnit('τεμ.'); setNote(''); setImage(undefined); setAlternatives([]);
     onClose();
   };
 
@@ -59,7 +72,6 @@ export default function ProductForm({ open, onClose, onSave, product }: Props) {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Resize to max 200x200 for storage efficiency
     const reader = new FileReader();
     reader.onload = (ev) => {
       const img = new window.Image();
@@ -110,6 +122,16 @@ export default function ProductForm({ open, onClose, onSave, product }: Props) {
   const stopVoiceInput = () => {
     recognitionRef.current?.stop();
     setIsListening(false);
+  };
+
+  const addAlternative = (pid: string) => {
+    if (alternatives.length >= 3) return;
+    setAlternatives(prev => [...prev, pid]);
+    setAltSearch('');
+  };
+
+  const removeAlternative = (pid: string) => {
+    setAlternatives(prev => prev.filter(id => id !== pid));
   };
 
   return (
@@ -244,6 +266,61 @@ export default function ProductForm({ open, onClose, onSave, product }: Props) {
                 </Button>
               </div>
             </div>
+
+            {/* Alternatives */}
+            {product && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-medium">{t('alternatives')} <span className="text-muted-foreground font-normal">({alternatives.length}/3)</span></Label>
+                {alternatives.length > 0 && (
+                  <div className="space-y-1">
+                    {alternatives.map(altId => {
+                      const altP = products.find(p => p.id === altId);
+                      if (!altP) return null;
+                      return (
+                        <div key={altId} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50">
+                          <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs ${CATEGORY_COLORS[altP.category]}`}>
+                            {CATEGORY_EMOJI[altP.category]}
+                          </span>
+                          <span className="text-xs flex-1 truncate text-foreground">
+                            {lang === 'el' ? altP.name : (altP.nameEn || altP.name)}
+                          </span>
+                          <button onClick={() => removeAlternative(altId)} className="text-muted-foreground hover:text-destructive">
+                            <X size={12} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {alternatives.length < 3 && (
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={13} />
+                    <Input
+                      value={altSearch}
+                      onChange={e => setAltSearch(e.target.value)}
+                      placeholder={t('searchAlternative')}
+                      className="h-8 pl-8 text-xs rounded-lg"
+                    />
+                  </div>
+                )}
+                {altSearchResults.length > 0 && (
+                  <div className="border border-border rounded-lg overflow-hidden">
+                    {altSearchResults.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => addAlternative(p.id)}
+                        className="w-full flex items-center gap-2 p-2 hover:bg-secondary/50 transition-colors text-left"
+                      >
+                        <span className="text-xs">{CATEGORY_EMOJI[p.category] || '📦'}</span>
+                        <span className="text-xs text-foreground truncate flex-1">{lang === 'el' ? p.name : (p.nameEn || p.name)}</span>
+                        <Plus size={12} className="text-primary shrink-0" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-2 pt-2">
               <Button variant="outline" className="flex-1 h-10" onClick={onClose}>{t('cancel')}</Button>
               <Button className="flex-1 h-10" onClick={handleSave}>{t('save')}</Button>
