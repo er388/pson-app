@@ -60,7 +60,7 @@ export default function ShoppingListPage() {
   const [quickAddOpen, setQuickAddOpen] = useState(true);
   const [fullImageSrc, setFullImageSrc] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
-  const [barcodeResult, setBarcodeResult] = useState<{ barcode: string; product?: Product } | null>(null);
+  const [barcodeResult, setBarcodeResult] = useState<{ barcode: string; product?: Product; offData?: { name: string; category: string; imageUrl?: string; brand?: string } } | null>(null);
   const [showProductForm, setShowProductForm] = useState(false);
   const [prefillBarcode, setPrefillBarcode] = useState('');
   const [budgetModalOpen, setBudgetModalOpen] = useState(false);
