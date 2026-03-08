@@ -255,10 +255,14 @@ export default function ShoppingListPage() {
           )}
         </button>
 
-        {/* Emoji */}
-        <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0 ${p ? CATEGORY_COLORS[p.category] : ''}`}>
-          {p ? CATEGORY_EMOJI[p.category] : '?'}
-        </span>
+        {/* Emoji or thumbnail */}
+        {p?.image ? (
+          <img src={p.image} alt="" className="w-7 h-7 rounded-lg object-cover shrink-0" />
+        ) : (
+          <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs shrink-0 ${p ? CATEGORY_COLORS[p.category] : ''}`}>
+            {p ? CATEGORY_EMOJI[p.category] : '?'}
+          </span>
+        )}
 
         {/* Name */}
         <div className="flex-1 min-w-0">
