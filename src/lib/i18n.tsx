@@ -373,6 +373,13 @@ const translations = {
     noConfirmedItems: 'No confirmed items',
     receiptSaved: 'Receipt saved!',
     ocrError: 'Recognition error',
+    // Duplicate detection
+    duplicateFound: 'Already exists',
+    alreadyInList: 'Already in list',
+    increaseQuantity: 'Increase quantity',
+    addAgain: 'Add again',
+    // Smart uncheck
+    smartUncheck: 'Auto-move on uncheck',
   },
 } as const;
 
