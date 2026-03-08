@@ -70,6 +70,12 @@ export default function ShoppingListPage() {
   const [budgetScope, setBudgetScope] = useState<'global' | 'store'>('global');
   const [budgetStoreId, setBudgetStoreId] = useState<string>('');
   const [altSwapItem, setAltSwapItem] = useState<{ itemId: string; productId: string } | null>(null);
+  const [duplicateInfo, setDuplicateInfo] = useState<{ productId: string; pendingStoreId: string | null } | null>(null);
+
+  // Smart uncheck setting
+  const [smartUncheck, setSmartUncheck] = useState(() => {
+    try { return localStorage.getItem('smartcart-smart-uncheck') !== 'false'; } catch { return true; }
+  });
 
   // Sort mode with persistence
   const [sortMode, setSortMode] = useState<SortMode>(() => {
