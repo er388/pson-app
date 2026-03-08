@@ -192,6 +192,26 @@ export function useCompletedPurchases() {
   return { purchases, addPurchase };
 }
 
+export function useTemplates() {
+  const [templates, setTemplates] = useLocalStorage<ListTemplate[]>('smartcart-templates', []);
+
+  const addTemplate = useCallback((name: string, items: { productId: string; quantity: number; storeId?: string | null }[]) => {
+    const t: ListTemplate = { id: uid(), name, items, createdAt: new Date().toISOString() };
+    setTemplates(prev => [...prev, t]);
+    return t;
+  }, [setTemplates]);
+
+  const removeTemplate = useCallback((id: string) => {
+    setTemplates(prev => prev.filter(t => t.id !== id));
+  }, [setTemplates]);
+
+  const setAllTemplates = useCallback((ts: ListTemplate[]) => {
+    setTemplates(ts);
+  }, [setTemplates]);
+
+  return { templates, addTemplate, removeTemplate, setAllTemplates };
+}
+
 export function useCustomCategories() {
   const [categories, setCategories] = useLocalStorage<CustomCategory[]>('smartcart-custom-categories', []);
 
