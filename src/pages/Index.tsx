@@ -71,6 +71,7 @@ export default function ShoppingListPage() {
   const [budgetStoreId, setBudgetStoreId] = useState<string>('');
   const [altSwapItem, setAltSwapItem] = useState<{ itemId: string; productId: string } | null>(null);
   const [duplicateInfo, setDuplicateInfo] = useState<{ productId: string; pendingStoreId: string | null } | null>(null);
+  const [storeCheckOpen, setStoreCheckOpen] = useState(false);
 
   // Smart uncheck setting
   const [smartUncheck, setSmartUncheck] = useState(() => {
