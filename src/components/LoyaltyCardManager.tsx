@@ -58,7 +58,7 @@ export default function LoyaltyCardManager() {
   const [cardName, setCardName] = useState('');
   const [cardStoreId, setCardStoreId] = useState('');
   const [cardNumber, setCardNumber] = useState('');
-  const [cardFormat, setCardFormat] = useState<BarcodeFormat>('EAN13');
+  const [cardFormat, setCardFormat] = useState<BarcodeFormat>('CODE128');
 
   const handleAdd = () => {
     if (!cardName.trim() || !cardNumber.trim()) return;
@@ -71,7 +71,7 @@ export default function LoyaltyCardManager() {
     setCardName('');
     setCardStoreId('');
     setCardNumber('');
-    setCardFormat('EAN13');
+    setCardFormat('CODE128');
     setAddOpen(false);
   };
 
@@ -174,26 +174,25 @@ export default function LoyaltyCardManager() {
             <div>
               <label className="text-xs font-medium text-foreground mb-1 block">{t('cardNumber')}</label>
               <div className="flex gap-2">
-                <Input value={cardNumber} onChange={e => setCardNumber(e.target.value)} placeholder="1234567890123" className="h-9 rounded-xl text-sm flex-1" />
+                <Input
+                  value={cardNumber}
+                  onChange={e => {
+                    const v = e.target.value;
+                    setCardNumber(v);
+                    setCardFormat(detectFormat(v));
+                  }}
+                  placeholder="1234567890123"
+                  className="h-9 rounded-xl text-sm flex-1"
+                />
                 <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl shrink-0" onClick={() => setScannerOpen(true)}>
                   <ScanLine size={16} />
                 </Button>
               </div>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-foreground mb-1 block">{t('barcodeType')}</label>
-              <Select value={cardFormat} onValueChange={v => setCardFormat(v as BarcodeFormat)}>
-                <SelectTrigger className="h-9 rounded-xl text-sm">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="EAN13">EAN-13</SelectItem>
-                  <SelectItem value="EAN8">EAN-8</SelectItem>
-                  <SelectItem value="CODE128">Code 128</SelectItem>
-                  <SelectItem value="UPC">UPC</SelectItem>
-                  <SelectItem value="QR">QR Code</SelectItem>
-                </SelectContent>
-              </Select>
+              {cardNumber && (
+                <p className="text-[10px] text-muted-foreground mt-1">
+                  {t('barcodeType')}: {cardFormat}
+                </p>
+              )}
             </div>
             {cardNumber && (
               <div className="p-3 rounded-xl bg-white">

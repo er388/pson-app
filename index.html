@@ -23,6 +23,21 @@
   </head>
 
   <body>
+    <script>
+      // Apply theme before first paint to prevent flash
+      (function(){
+        try {
+          var t = JSON.parse(localStorage.getItem('smartcart-theme') || '"light"');
+          var cl = document.documentElement.classList;
+          if (t === 'dark') cl.add('dark');
+          else if (t === 'black') { cl.add('dark'); cl.add('theme-black'); }
+          else if (t === 'green') { cl.add('dark'); cl.add('theme-green'); }
+          else if (t === 'blue') { cl.add('dark'); cl.add('theme-blue'); }
+          // Legacy fallback
+          else if (t === true || localStorage.getItem('smartcart-dark') === 'true') cl.add('dark');
+        } catch(e) {}
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

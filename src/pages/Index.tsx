@@ -71,6 +71,7 @@ export default function ShoppingListPage() {
   const [budgetStoreId, setBudgetStoreId] = useState<string>('');
   const [altSwapItem, setAltSwapItem] = useState<{ itemId: string; productId: string } | null>(null);
   const [duplicateInfo, setDuplicateInfo] = useState<{ productId: string; pendingStoreId: string | null } | null>(null);
+  const [storeCheckOpen, setStoreCheckOpen] = useState(false);
 
   // Smart uncheck setting
   const [smartUncheck, setSmartUncheck] = useState(() => {
@@ -248,7 +249,7 @@ export default function ShoppingListPage() {
     });
   }, [rawItems, removeItem, setAllItems, products, lang, t]);
 
-  const handleCompletePurchase = () => {
+  const doCompletePurchase = () => {
     const checkedItems = items.filter(i => i.checked);
     if (checkedItems.length === 0) return;
 
@@ -277,6 +278,16 @@ export default function ShoppingListPage() {
 
     clearChecked();
     toast({ title: t('purchaseCompleted'), description: formatPrice(total) });
+  };
+
+  const handleCompletePurchase = () => {
+    const checkedItems = items.filter(i => i.checked);
+    if (checkedItems.length === 0) return;
+    if (!activeStoreId) {
+      setStoreCheckOpen(true);
+      return;
+    }
+    doCompletePurchase();
   };
 
   const toggleCollapse = (key: string) => {
@@ -415,6 +426,7 @@ export default function ShoppingListPage() {
   const handleLoadTemplate = (templateId: string, mode: 'merge' | 'replace') => {
     const tpl = templates.find(t => t.id === templateId);
     if (!tpl) return;
+    const snapshot = [...rawItems];
     if (mode === 'replace') {
       clearAll();
       setTimeout(() => { tpl.items.forEach(i => addItem(i.productId, i.quantity, i.storeId)); }, 50);
@@ -423,6 +435,9 @@ export default function ShoppingListPage() {
     }
     setShowLoadTemplate(false);
     toast({ title: t('templateLoaded') });
+    showUndo(t('templateLoaded'), () => {
+      setAllItems(snapshot);
+    });
   };
 
   const renderItem = (item: typeof items[0]) => {
@@ -1044,6 +1059,24 @@ export default function ShoppingListPage() {
         onIncreaseQuantity={handleDuplicateIncrease}
         onAddAgain={handleDuplicateAddAgain}
       />
+
+      {/* Store Check Before Checkout */}
+      <Dialog open={storeCheckOpen} onOpenChange={setStoreCheckOpen}>
+        <DialogContent className="max-w-xs mx-auto rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base">{t('noStoreSelected')}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{t('noStorePrompt')}</p>
+          <div className="space-y-2">
+            <Button className="w-full rounded-xl" variant="outline" onClick={() => { setStoreCheckOpen(false); }}>
+              {t('selectStoreOption')}
+            </Button>
+            <Button className="w-full rounded-xl" onClick={() => { setStoreCheckOpen(false); doCompletePurchase(); }}>
+              {t('continueWithout')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Full-size image preview */}
       {fullImageSrc && (

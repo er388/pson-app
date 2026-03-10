@@ -1,24 +1,44 @@
 import { useState } from 'react';
-import { Globe, Moon, Store, Plus, Trash2, Bookmark, ArrowUpFromLine } from 'lucide-react';
+import { Globe, Palette, Store, Plus, Trash2, Bookmark, ArrowUpFromLine, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/lib/i18n';
-import { useStores, useDarkMode, useTemplates } from '@/lib/useStore';
+import { useStores, useThemeMode, useTemplates, ThemeMode } from '@/lib/useStore';
 import CategoryManager from '@/components/CategoryManager';
 import DataManager from '@/components/DataManager';
 import CloudBackup from '@/components/CloudBackup';
 import LoyaltyCardManager from '@/components/LoyaltyCardManager';
 import { toast } from '@/hooks/use-toast';
 
+const THEME_OPTIONS: { value: ThemeMode; emoji: string }[] = [
+  { value: 'light', emoji: '☀️' },
+  { value: 'dark', emoji: '🌙' },
+  { value: 'black', emoji: '⬛' },
+  { value: 'green', emoji: '🟢' },
+  { value: 'blue', emoji: '🔵' },
+];
+
+const STARTUP_PAGES = [
+  { value: 'last', path: '' },
+  { value: 'shoppingList', path: '/' },
+  { value: 'catalog', path: '/catalog' },
+  { value: 'history', path: '/history' },
+  { value: 'statistics', path: '/stats' },
+  { value: 'settings', path: '/settings' },
+] as const;
+
 export default function SettingsPage() {
   const { t, lang, setLang } = useI18n();
   const { stores, addStore, removeStore } = useStores();
-  const [dark, setDark] = useDarkMode();
+  const [theme, setTheme] = useThemeMode();
   const [newStore, setNewStore] = useState('');
   const { templates, removeTemplate } = useTemplates();
   const [smartUncheck, setSmartUncheck] = useState(() => {
     try { return localStorage.getItem('smartcart-smart-uncheck') !== 'false'; } catch { return true; }
+  });
+  const [startupPage, setStartupPage] = useState(() => {
+    try { return localStorage.getItem('smartcart-startup-page') || 'last'; } catch { return 'last'; }
   });
 
   const handleAddStore = () => {
@@ -26,6 +46,11 @@ export default function SettingsPage() {
       addStore(newStore.trim());
       setNewStore('');
     }
+  };
+
+  const handleStartupChange = (val: string) => {
+    setStartupPage(val);
+    localStorage.setItem('smartcart-startup-page', val);
   };
 
   return (
@@ -56,14 +81,29 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Dark Mode */}
+      {/* Theme Mode - 5 options */}
       <section className="mb-6">
-        <div className="flex items-center gap-3 p-4 rounded-2xl bg-card border border-border">
-          <Moon size={20} className="text-primary" />
-          <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">{t('darkMode')}</p>
+        <div className="p-4 rounded-2xl bg-card border border-border">
+          <div className="flex items-center gap-3 mb-3">
+            <Palette size={20} className="text-primary" />
+            <p className="text-sm font-medium text-foreground">{t('themeMode')}</p>
           </div>
-          <Switch checked={dark} onCheckedChange={setDark} />
+          <div className="flex gap-1.5">
+            {THEME_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setTheme(opt.value)}
+                className={`flex-1 flex flex-col items-center gap-1 py-2 rounded-xl text-xs font-medium transition-colors ${
+                  theme === opt.value
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-secondary text-secondary-foreground'
+                }`}
+              >
+                <span className="text-base">{opt.emoji}</span>
+                {t((`theme${opt.value.charAt(0).toUpperCase() + opt.value.slice(1)}`) as any)}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -75,6 +115,37 @@ export default function SettingsPage() {
             <p className="text-sm font-medium text-foreground">{t('smartUncheck')}</p>
           </div>
           <Switch checked={smartUncheck} onCheckedChange={(v) => { setSmartUncheck(v); localStorage.setItem('smartcart-smart-uncheck', String(v)); }} />
+        </div>
+      </section>
+
+      {/* Startup Page */}
+      <section className="mb-6">
+        <div className="p-4 rounded-2xl bg-card border border-border">
+          <div className="flex items-center gap-3 mb-3">
+            <Home size={20} className="text-primary" />
+            <p className="text-sm font-medium text-foreground">{t('startupPage')}</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              onClick={() => handleStartupChange('last')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                startupPage === 'last' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'
+              }`}
+            >
+              {t('lastVisited')}
+            </button>
+            {STARTUP_PAGES.slice(1).map(sp => (
+              <button
+                key={sp.value}
+                onClick={() => handleStartupChange(sp.path)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  startupPage === sp.path ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'
+                }`}
+              >
+                {t(sp.value as any)}
+              </button>
+            ))}
+          </div>
         </div>
       </section>
 

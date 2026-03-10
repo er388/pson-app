@@ -7,6 +7,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReceiptScanner from '@/components/ReceiptScanner';
@@ -26,6 +36,7 @@ export default function HistoryPage() {
   const [saveTemplateName, setSaveTemplateName] = useState('');
   const [saveTemplateFrom, setSaveTemplateFrom] = useState<CompletedPurchase | null>(null);
   const [receiptScannerOpen, setReceiptScannerOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<CompletedPurchase | null>(null);
 
   const getProductName = (pid: string) => {
     const p = products.find(pr => pr.id === pid);
@@ -81,6 +92,14 @@ export default function HistoryPage() {
     setSaveTemplateName('');
     setSaveTemplateFrom(null);
     toast({ title: t('templateSaved') });
+  };
+
+  const handleDeleteEntry = () => {
+    if (deleteTarget) {
+      removePurchase(deleteTarget.id);
+      setDeleteTarget(null);
+      toast({ title: t('deleted') });
+    }
   };
 
   const formatDate = (dateStr: string) => {
@@ -167,7 +186,15 @@ export default function HistoryPage() {
                     <p className="text-sm font-semibold text-foreground">{formatDate(purchase.date)}</p>
                     <p className="text-xs text-muted-foreground">{formatTime(purchase.date)}</p>
                   </div>
-                  <span className="text-lg font-bold text-primary">{formatPrice(purchase.total)}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg font-bold text-primary">{formatPrice(purchase.total)}</span>
+                    <button
+                      onClick={() => setDeleteTarget(purchase)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex items-center gap-2 mb-3">
@@ -201,6 +228,22 @@ export default function HistoryPage() {
           </AnimatePresence>
         </div>
       )}
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent className="rounded-2xl max-w-sm">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('deleteEntry')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('deleteEntryConfirm')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeleteEntry}>
+              {t('delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Detail Dialog */}
       <Dialog open={!!detailPurchase} onOpenChange={() => setDetailPurchase(null)}>

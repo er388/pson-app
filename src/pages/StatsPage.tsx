@@ -3,7 +3,7 @@ import { useI18n } from '@/lib/i18n';
 import { useProducts, useStores, usePurchaseHistory, useCompletedPurchases } from '@/lib/useStore';
 import { CATEGORY_EMOJI, CATEGORY_COLORS, formatPrice } from '@/lib/types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, TrendingDown, Minus, ShoppingCart, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, ShoppingCart, Calendar, Store } from 'lucide-react';
 
 const CHART_COLORS = ['hsl(152,55%,38%)', 'hsl(38,85%,55%)', 'hsl(0,72%,51%)', 'hsl(200,80%,50%)', 'hsl(280,60%,50%)', 'hsl(40,90%,50%)'];
 
@@ -125,7 +125,8 @@ export default function StatsPage() {
     <div className="max-w-lg mx-auto px-4 pt-4 pb-24">
       <h1 className="text-2xl font-bold text-foreground mb-4">{t('statistics')}</h1>
 
-      <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
+      {/* Period filter - first row */}
+      <div className="flex gap-2 mb-3">
         {(['week', 'month', 'all'] as Period[]).map(p => (
           <button
             key={p}
@@ -135,7 +136,11 @@ export default function StatsPage() {
             {t(p === 'all' ? 'allTime' : p)}
           </button>
         ))}
-        <span className="shrink-0 w-px bg-border" />
+      </div>
+
+      {/* Store filter - second row */}
+      <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
+        <Store size={14} className="text-muted-foreground shrink-0 mt-1" />
         <button
           onClick={() => setFilterStore(null)}
           className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${!filterStore ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}
@@ -191,7 +196,7 @@ export default function StatsPage() {
                       contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 12, fontSize: 12 }}
                       formatter={(value: number) => [formatPrice(value), t('total')]}
                     />
-                    <Bar dataKey="total" fill="hsl(152,55%,38%)" radius={[6, 6, 0, 0]} />
+                    <Bar dataKey="total" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
