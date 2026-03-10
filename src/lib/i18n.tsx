@@ -191,6 +191,26 @@ const translations = {
     addAgain: 'Προσθήκη ξανά',
     // Smart uncheck
     smartUncheck: 'Αυτόματη μετακίνηση κατά το ξε-τσεκάρισμα',
+    // Theme modes
+    themeMode: 'Θέμα εμφάνισης',
+    themeLight: 'Φωτεινό',
+    themeDark: 'Σκοτεινό',
+    themeBlack: 'AMOLED',
+    themeGreen: 'Πράσινο',
+    themeBlue: 'Μπλε',
+    // History delete
+    deleteEntry: 'Διαγραφή εγγραφής',
+    deleteEntryConfirm: 'Θέλετε να διαγράψετε αυτή την αγορά από το ιστορικό;',
+    // Store check
+    noStoreSelected: 'Δεν έχετε επιλέξει κατάστημα',
+    noStorePrompt: 'Θέλετε να επιλέξετε κατάστημα ή να συνεχίσετε χωρίς;',
+    selectStoreOption: 'Επιλογή καταστήματος',
+    continueWithout: 'Συνέχεια χωρίς',
+    // Back button
+    exitConfirm: 'Θέλετε να κλείσετε την εφαρμογή;',
+    // Startup page
+    startupPage: 'Αρχική σελίδα εκκίνησης',
+    lastVisited: 'Τελευταία επισκεφθείσα',
   },
   en: {
     shoppingList: 'Shopping List',
