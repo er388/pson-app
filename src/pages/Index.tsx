@@ -1071,7 +1071,7 @@ export default function ShoppingListPage() {
             <Button className="w-full rounded-xl" variant="outline" onClick={() => { setStoreCheckOpen(false); }}>
               {t('selectStoreOption')}
             </Button>
-            <Button className="w-full rounded-xl" onClick={() => { setStoreCheckOpen(false); handleCompletePurchase(); }}>
+            <Button className="w-full rounded-xl" onClick={() => { setStoreCheckOpen(false); doCompletePurchase(); }}>
               {t('continueWithout')}
             </Button>
           </div>
