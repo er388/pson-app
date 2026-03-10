@@ -315,11 +315,32 @@ export function useLoyaltyCards() {
   return { cards, addCard, removeCard, setAllCards };
 }
 
-export function useDarkMode() {
-  const [dark, setDark] = useLocalStorage('smartcart-dark', false);
+export type ThemeMode = 'light' | 'dark' | 'black' | 'green' | 'blue';
+
+export function useThemeMode() {
+  const [theme, setTheme] = useLocalStorage<ThemeMode>('smartcart-theme', 'light');
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', dark);
-  }, [dark]);
+    const cl = document.documentElement.classList;
+    cl.remove('dark', 'theme-black', 'theme-green', 'theme-blue');
+    if (theme === 'dark') cl.add('dark');
+    else if (theme === 'black') { cl.add('dark'); cl.add('theme-black'); }
+    else if (theme === 'green') { cl.add('dark'); cl.add('theme-green'); }
+    else if (theme === 'blue') { cl.add('dark'); cl.add('theme-blue'); }
+  }, [theme]);
+  return [theme, setTheme] as const;
+}
+
+// Legacy compat
+export function useDarkMode() {
+  const [theme, setTheme] = useThemeMode();
+  const dark = theme !== 'light';
+  const setDark = useCallback((v: boolean | ((prev: boolean) => boolean)) => {
+    if (typeof v === 'function') {
+      setTheme(prev => v(prev !== 'light') ? 'dark' : 'light');
+    } else {
+      setTheme(v ? 'dark' : 'light');
+    }
+  }, [setTheme]);
   return [dark, setDark] as const;
 }
 

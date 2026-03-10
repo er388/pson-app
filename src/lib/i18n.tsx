@@ -125,7 +125,7 @@ const translations = {
     addToCatalog: 'Προσθήκη στον κατάλογο',
     sortByCategory: 'Κατηγορία',
     sortByStore: 'Κατάστημα',
-    sortByAdded: 'Προσθήκης',
+    sortByAdded: 'Προσθήκη',
     deleted: 'Διαγράφηκε',
     undo: 'Αναίρεση',
     // Budget
