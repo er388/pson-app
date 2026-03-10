@@ -249,15 +249,9 @@ export default function ShoppingListPage() {
     });
   }, [rawItems, removeItem, setAllItems, products, lang, t]);
 
-  const handleCompletePurchase = () => {
+  const doCompletePurchase = () => {
     const checkedItems = items.filter(i => i.checked);
     if (checkedItems.length === 0) return;
-
-    // Check if store is selected
-    if (!activeStoreId && !storeCheckOpen) {
-      setStoreCheckOpen(true);
-      return;
-    }
 
     const storeIds = [...new Set(checkedItems.map(i => i.storeId).filter(Boolean))] as string[];
 
@@ -284,6 +278,16 @@ export default function ShoppingListPage() {
 
     clearChecked();
     toast({ title: t('purchaseCompleted'), description: formatPrice(total) });
+  };
+
+  const handleCompletePurchase = () => {
+    const checkedItems = items.filter(i => i.checked);
+    if (checkedItems.length === 0) return;
+    if (!activeStoreId) {
+      setStoreCheckOpen(true);
+      return;
+    }
+    doCompletePurchase();
   };
 
   const toggleCollapse = (key: string) => {
