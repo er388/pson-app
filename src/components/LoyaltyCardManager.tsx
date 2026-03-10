@@ -71,7 +71,7 @@ export default function LoyaltyCardManager() {
     setCardName('');
     setCardStoreId('');
     setCardNumber('');
-    setCardFormat('EAN13');
+    setCardFormat('CODE128');
     setAddOpen(false);
   };
 
