@@ -31,33 +31,42 @@ export default function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border backdrop-blur-lg bg-opacity-95 z-50">
-        <div className="relative flex justify-around items-center h-16 max-w-lg mx-auto">
-          {/* Active tab indicator - positioned absolutely based on index */}
+        <div className="relative max-w-lg mx-auto">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-1 overflow-hidden">
+            <div
+              className="h-full transition-transform duration-300 ease-out"
+              style={{
+                width: `${100 / tabs.length}%`,
+                transform: `translateX(${activeIndex * 100}%)`,
+              }}
+            >
+              <div className="mx-auto h-full w-8 rounded-full bg-primary" />
+            </div>
+          </div>
+
           <div
-            className="absolute -top-0.5 h-1 w-8 bg-primary rounded-full transition-all duration-300 ease-out"
-            style={{
-              left: `${(activeIndex + 0.5) * (100 / tabs.length)}%`,
-              transform: 'translateX(-50%)',
-            }}
-          />
-          {tabs.map(tab => {
-            const active = location.pathname === tab.path;
-            return (
-              <button
-                key={tab.path}
-                onClick={() => handleNav(tab.path)}
-                className="relative flex flex-col items-center gap-0.5 px-2 py-2 transition-colors"
-              >
-                <tab.icon
-                  size={18}
-                  className={active ? 'text-primary' : 'text-muted-foreground'}
-                />
-                <span className={`text-[9px] font-medium ${active ? 'text-primary' : 'text-muted-foreground'}`}>
-                  {t(tab.labelKey)}
-                </span>
-              </button>
-            );
-          })}
+            className="grid items-center h-16"
+            style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
+          >
+            {tabs.map(tab => {
+              const active = location.pathname === tab.path;
+              return (
+                <button
+                  key={tab.path}
+                  onClick={() => handleNav(tab.path)}
+                  className="relative flex w-full flex-col items-center gap-0.5 px-1 py-2 transition-colors"
+                >
+                  <tab.icon
+                    size={18}
+                    className={active ? 'text-primary' : 'text-muted-foreground'}
+                  />
+                  <span className={`text-[9px] font-medium ${active ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {t(tab.labelKey)}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </nav>
     </div>
