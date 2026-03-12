@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Plus, Trash2, Edit2, Check, X, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useI18n } from '@/lib/i18n';
 import { useCustomCategories, useProducts } from '@/lib/useStore';
-import { DEFAULT_CATEGORIES, CATEGORY_EMOJI, CATEGORY_COLORS, CustomCategory } from '@/lib/types';
+import { DEFAULT_CATEGORIES, CATEGORY_EMOJI, CATEGORY_COLORS, CustomCategory, DefaultCategory } from '@/lib/types';
 import {
   AlertDialog,
   AlertDialogAction,
