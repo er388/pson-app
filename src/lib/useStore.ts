@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Product, ShoppingItem, Store, PurchaseRecord, CompletedPurchase, Category, CustomCategory, AppData, DEFAULT_CATEGORIES, DEFAULT_CATEGORY_EMOJI, DEFAULT_CATEGORY_COLORS, CATEGORY_EMOJI, CATEGORY_COLORS, ProductUnit, ListTemplate, Budget, LoyaltyCard } from './types';
+import { Product, ShoppingItem, Store, PurchaseRecord, CompletedPurchase, Category, DefaultCategory, CustomCategory, AppData, DEFAULT_CATEGORIES, DEFAULT_CATEGORY_EMOJI, DEFAULT_CATEGORY_COLORS, CATEGORY_EMOJI, CATEGORY_COLORS, ProductUnit, ListTemplate, Budget, LoyaltyCard } from './types';
 
 function useLocalStorage<T>(key: string, initial: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [value, setValue] = useState<T>(() => {
@@ -249,6 +249,13 @@ export function useTemplates() {
 
 export function useCustomCategories() {
   const [categories, setCategories] = useLocalStorage<CustomCategory[]>('smartcart-custom-categories', []);
+  const [defaultCategoryOverrides, setDefaultCategoryOverrides] = useLocalStorage<
+    Partial<Record<DefaultCategory, { name: string; nameEn?: string }>>
+  >('smartcart-default-category-overrides', {});
+  const [hiddenDefaultCategories, setHiddenDefaultCategories] = useLocalStorage<DefaultCategory[]>(
+    'smartcart-hidden-default-categories',
+    [],
+  );
 
   useEffect(() => {
     Object.keys(CATEGORY_EMOJI).forEach(k => {
@@ -262,6 +269,10 @@ export function useCustomCategories() {
       CATEGORY_COLORS[c.id] = c.color;
     });
   }, [categories]);
+
+  useEffect(() => {
+    window.dispatchEvent(new Event('smartcart-category-overrides-updated'));
+  }, [defaultCategoryOverrides]);
 
   const addCategory = useCallback((cat: Omit<CustomCategory, 'id'>) => {
     const newCat: CustomCategory = { ...cat, id: `custom_${uid()}` };
@@ -281,9 +292,38 @@ export function useCustomCategories() {
     setCategories(cats);
   }, [setCategories]);
 
-  const allCategoryKeys: string[] = [...DEFAULT_CATEGORIES, ...categories.map(c => c.id)];
+  const updateDefaultCategory = useCallback((key: DefaultCategory, name: string, nameEn?: string) => {
+    setDefaultCategoryOverrides(prev => ({
+      ...prev,
+      [key]: {
+        name,
+        nameEn: nameEn?.trim() || undefined,
+      },
+    }));
+  }, [setDefaultCategoryOverrides]);
 
-  return { customCategories: categories, addCategory, updateCategory, removeCategory, setAllCategories, allCategoryKeys };
+  const hideDefaultCategory = useCallback((key: DefaultCategory) => {
+    setHiddenDefaultCategories(prev => (prev.includes(key) ? prev : [...prev, key]));
+  }, [setHiddenDefaultCategories]);
+
+  const visibleDefaultCategories = DEFAULT_CATEGORIES.filter(
+    key => !hiddenDefaultCategories.includes(key),
+  );
+
+  const allCategoryKeys: string[] = [...visibleDefaultCategories, ...categories.map(c => c.id)];
+
+  return {
+    customCategories: categories,
+    addCategory,
+    updateCategory,
+    removeCategory,
+    setAllCategories,
+    allCategoryKeys,
+    defaultCategoryOverrides,
+    updateDefaultCategory,
+    hideDefaultCategory,
+    hiddenDefaultCategories,
+  };
 }
 
 export function useBudget() {

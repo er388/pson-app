@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
 type Lang = 'el' | 'en';
 
@@ -440,12 +440,43 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('smartcart-lang');
     return (saved as Lang) || 'el';
   });
+  const [defaultCategoryOverrides, setDefaultCategoryOverrides] = useState<Record<string, { name: string; nameEn?: string }>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('smartcart-default-category-overrides') || '{}');
+    } catch {
+      return {};
+    }
+  });
 
   useEffect(() => {
     localStorage.setItem('smartcart-lang', lang);
   }, [lang]);
 
-  const t = (key: TranslationKey) => translations[lang][key] || key;
+  useEffect(() => {
+    const syncOverrides = () => {
+      try {
+        setDefaultCategoryOverrides(JSON.parse(localStorage.getItem('smartcart-default-category-overrides') || '{}'));
+      } catch {
+        setDefaultCategoryOverrides({});
+      }
+    };
+
+    window.addEventListener('storage', syncOverrides);
+    window.addEventListener('smartcart-category-overrides-updated', syncOverrides);
+
+    return () => {
+      window.removeEventListener('storage', syncOverrides);
+      window.removeEventListener('smartcart-category-overrides-updated', syncOverrides);
+    };
+  }, []);
+
+  const t = useCallback((key: TranslationKey) => {
+    const override = defaultCategoryOverrides[key as string];
+    if (override?.name) {
+      return lang === 'el' ? override.name : (override.nameEn || override.name);
+    }
+    return translations[lang][key] || key;
+  }, [defaultCategoryOverrides, lang]);
 
   return (
     <I18nContext.Provider value={{ lang, setLang, t }}>

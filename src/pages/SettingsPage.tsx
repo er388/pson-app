@@ -86,28 +86,24 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* Theme Mode - 6 options */}
+      {/* Theme Mode - compact dropdown */}
       <section className="mb-6">
         <div className="p-4 rounded-2xl bg-card border border-border">
-          <div className="flex items-center gap-3 mb-3">
+          <div className="flex items-center gap-3">
             <Palette size={20} className="text-primary" />
-            <p className="text-sm font-medium text-foreground">{t('themeMode')}</p>
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {THEME_OPTIONS.map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => setTheme(opt.value)}
-                className={`flex flex-col items-center gap-1 py-2 rounded-xl text-xs font-medium transition-colors ${
-                  theme === opt.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-secondary-foreground'
-                }`}
-              >
-                <span className="text-base">{opt.emoji}</span>
-                {t((`theme${opt.value.charAt(0).toUpperCase() + opt.value.slice(1)}`) as any)}
-              </button>
-            ))}
+            <p className="text-sm font-medium text-foreground flex-1">{t('themeMode')}</p>
+            <Select value={theme} onValueChange={(val) => setTheme(val as ThemeMode)}>
+              <SelectTrigger className="w-44 h-9 rounded-xl text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {THEME_OPTIONS.map(opt => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.emoji} {t((`theme${opt.value.charAt(0).toUpperCase() + opt.value.slice(1)}`) as any)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </section>
