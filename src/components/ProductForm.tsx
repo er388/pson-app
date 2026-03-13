@@ -1,10 +1,10 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Camera, Mic, MicOff, Image as ImageIcon, X, Search, Plus } from 'lucide-react';
+import { Camera, Mic, MicOff, Image as ImageIcon, X, Search, Plus, Minus } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { Product, DEFAULT_CATEGORIES, CATEGORY_EMOJI, CATEGORY_COLORS, Category, PRODUCT_UNITS, ProductUnit } from '@/lib/types';
 import { useCustomCategories, useProducts } from '@/lib/useStore';
@@ -29,7 +29,7 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
   const [barcode, setBarcode] = useState(product?.barcode || '');
   const [unit, setUnit] = useState<ProductUnit>(product?.unit || 'τεμ.');
   const [note, setNote] = useState(product?.note || '');
-  const [image, setImage] = useState<string | undefined>(product?.image || (offImageUrl ? undefined : undefined));
+  const [image, setImage] = useState<string | undefined>(product?.image);
   const [alternatives, setAlternatives] = useState<string[]>(product?.alternatives || []);
   const [altSearch, setAltSearch] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
@@ -47,7 +47,7 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
       .slice(0, 5);
   }, [altSearch, products, alternatives, product?.id]);
 
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
     if (!name.trim()) return;
     onSave({
       name: name.trim(),
@@ -61,16 +61,16 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
     });
     setName(''); setNameEn(''); setCategory('other'); setBarcode(''); setUnit('τεμ.'); setNote(''); setImage(undefined); setAlternatives([]);
     onClose();
-  };
+  }, [name, nameEn, category, barcode, unit, note, image, alternatives, onSave, onClose]);
 
-  const getCategoryLabel = (key: string) => {
+  const getCategoryLabel = useCallback((key: string) => {
     const custom = customCategories.find(c => c.id === key);
     if (custom) return `${custom.emoji} ${lang === 'el' ? custom.name : (custom.nameEn || custom.name)}`;
     const emoji = CATEGORY_EMOJI[key] || '📦';
     return `${emoji} ${t(key as any)}`;
-  };
+  }, [customCategories, lang, t]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -92,53 +92,49 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
     };
     reader.readAsDataURL(file);
     e.target.value = '';
-  };
+  }, []);
 
-  const startVoiceInput = () => {
+  const startVoiceInput = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      toast({ title: t('voiceInput'), description: 'Η φωνητική εισαγωγή δεν υποστηρίζεται σε αυτόν τον browser. Δοκίμασε Chrome ή Edge.' });
+      toast({ title: t('voiceInput'), description: 'Η φωνητική εισαγωγή δεν υποστηρίζεται σε αυτόν τον browser.' });
       return;
     }
-
     const recognition = new SpeechRecognition();
     recognition.lang = 'el-GR';
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
-
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
       setName(prev => prev ? `${prev} ${transcript}` : transcript);
       setIsListening(false);
     };
-
     recognition.onerror = () => setIsListening(false);
     recognition.onend = () => setIsListening(false);
-
     recognitionRef.current = recognition;
     recognition.start();
     setIsListening(true);
-  };
+  }, [t]);
 
-  const stopVoiceInput = () => {
+  const stopVoiceInput = useCallback(() => {
     recognitionRef.current?.stop();
     setIsListening(false);
-  };
+  }, []);
 
-  const addAlternative = (pid: string) => {
+  const addAlternative = useCallback((pid: string) => {
     if (alternatives.length >= 3) return;
     setAlternatives(prev => [...prev, pid]);
     setAltSearch('');
-  };
+  }, [alternatives.length]);
 
-  const removeAlternative = (pid: string) => {
+  const removeAlternative = useCallback((pid: string) => {
     setAlternatives(prev => prev.filter(id => id !== pid));
-  };
+  }, []);
 
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-sm mx-auto rounded-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-sm mx-auto rounded-2xl max-h-[90vh] overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           <DialogHeader>
             <DialogTitle>{product ? t('editProduct') : t('addProduct')}</DialogTitle>
           </DialogHeader>
@@ -161,18 +157,10 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
                 </div>
               )}
               <div className="flex flex-col gap-1.5">
-                <Button
-                  type="button" variant="outline" size="sm"
-                  className="h-7 text-xs rounded-lg"
-                  onClick={() => cameraInputRef.current?.click()}
-                >
+                <Button type="button" variant="outline" size="sm" className="h-7 text-xs rounded-lg" onClick={() => cameraInputRef.current?.click()}>
                   <Camera size={13} className="mr-1" /> {t('takePhoto')}
                 </Button>
-                <Button
-                  type="button" variant="outline" size="sm"
-                  className="h-7 text-xs rounded-lg"
-                  onClick={() => fileInputRef.current?.click()}
-                >
+                <Button type="button" variant="outline" size="sm" className="h-7 text-xs rounded-lg" onClick={() => fileInputRef.current?.click()}>
                   <ImageIcon size={13} className="mr-1" /> {t('chooseFromGallery')}
                 </Button>
               </div>
@@ -219,9 +207,7 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {allCategoryKeys.map(c => (
-                      <SelectItem key={c} value={c}>
-                        {getCategoryLabel(c)}
-                      </SelectItem>
+                      <SelectItem key={c} value={c}>{getCategoryLabel(c)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -250,77 +236,74 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Barcode</Label>
               <div className="flex gap-2">
-                <Input
-                  value={barcode}
-                  onChange={e => setBarcode(e.target.value)}
-                  placeholder="(προαιρετικό)"
-                  className="h-10 flex-1"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-10 shrink-0 rounded-xl"
-                  onClick={() => setScannerOpen(true)}
-                >
+                <Input value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="(προαιρετικό)" className="h-10 flex-1" />
+                <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 rounded-xl" onClick={() => setScannerOpen(true)}>
                   <Camera size={18} />
                 </Button>
               </div>
             </div>
 
-            {/* Alternatives */}
-            {product && (
-              <div className="space-y-1.5">
-                <Label className="text-xs font-medium">{t('alternatives')} <span className="text-muted-foreground font-normal">({alternatives.length}/3)</span></Label>
-                {alternatives.length > 0 && (
-                  <div className="space-y-1">
-                    {alternatives.map(altId => {
-                      const altP = products.find(p => p.id === altId);
-                      if (!altP) return null;
-                      return (
-                        <div key={altId} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50">
-                          <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs ${CATEGORY_COLORS[altP.category]}`}>
-                            {CATEGORY_EMOJI[altP.category]}
-                          </span>
-                          <span className="text-xs flex-1 truncate text-foreground">
-                            {lang === 'el' ? altP.name : (altP.nameEn || altP.name)}
-                          </span>
-                          <button onClick={() => removeAlternative(altId)} className="text-muted-foreground hover:text-destructive">
-                            <X size={12} />
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {alternatives.length < 3 && (
-                  <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={13} />
-                    <Input
-                      value={altSearch}
-                      onChange={e => setAltSearch(e.target.value)}
-                      placeholder={t('searchAlternative')}
-                      className="h-8 pl-8 text-xs rounded-lg"
-                    />
-                  </div>
-                )}
-                {altSearchResults.length > 0 && (
-                  <div className="border border-border rounded-lg overflow-hidden">
-                    {altSearchResults.map(p => (
-                      <button
-                        key={p.id}
-                        onClick={() => addAlternative(p.id)}
-                        className="w-full flex items-center gap-2 p-2 hover:bg-secondary/50 transition-colors text-left"
-                      >
-                        <span className="text-xs">{CATEGORY_EMOJI[p.category] || '📦'}</span>
-                        <span className="text-xs text-foreground truncate flex-1">{lang === 'el' ? p.name : (p.nameEn || p.name)}</span>
-                        <Plus size={12} className="text-primary shrink-0" />
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+            {/* Alternatives - Dropdown rows with +/- */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">
+                {t('alternatives')} <span className="text-muted-foreground font-normal">({alternatives.length}/3)</span>
+              </Label>
+              
+              {/* Current alternatives as removable rows */}
+              {alternatives.length > 0 && (
+                <div className="space-y-1">
+                  {alternatives.map(altId => {
+                    const altP = products.find(p => p.id === altId);
+                    if (!altP) return null;
+                    return (
+                      <div key={altId} className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50 border border-border">
+                        <span className={`w-6 h-6 rounded-md flex items-center justify-center text-xs ${CATEGORY_COLORS[altP.category]}`}>
+                          {CATEGORY_EMOJI[altP.category]}
+                        </span>
+                        <span className="text-xs flex-1 truncate text-foreground">
+                          {lang === 'el' ? altP.name : (altP.nameEn || altP.name)}
+                        </span>
+                        <button
+                          onClick={() => removeAlternative(altId)}
+                          className="w-6 h-6 rounded-md flex items-center justify-center bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
+                        >
+                          <Minus size={12} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Add alternative - search dropdown */}
+              {alternatives.length < 3 && (
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" size={13} />
+                  <Input
+                    value={altSearch}
+                    onChange={e => setAltSearch(e.target.value)}
+                    placeholder={t('searchAlternative')}
+                    className="h-8 pl-8 text-xs rounded-lg"
+                  />
+                  {/* Dropdown results */}
+                  {altSearchResults.length > 0 && (
+                    <div className="absolute left-0 right-0 top-full mt-1 border border-border rounded-lg bg-popover shadow-md z-10 overflow-hidden">
+                      {altSearchResults.map(p => (
+                        <button
+                          key={p.id}
+                          onClick={() => addAlternative(p.id)}
+                          className="w-full flex items-center gap-2 p-2 hover:bg-accent transition-colors text-left"
+                        >
+                          <span className="text-xs">{CATEGORY_EMOJI[p.category] || '📦'}</span>
+                          <span className="text-xs text-foreground truncate flex-1">{lang === 'el' ? p.name : (p.nameEn || p.name)}</span>
+                          <Plus size={12} className="text-primary shrink-0" />
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             <div className="flex gap-2 pt-2">
               <Button variant="outline" className="flex-1 h-10" onClick={onClose}>{t('cancel')}</Button>

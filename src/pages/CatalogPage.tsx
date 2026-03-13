@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { Plus, Search, Edit2, Trash2, Star, ScanLine } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -21,11 +21,11 @@ export default function CatalogPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
 
-  const getCatLabel = (key: string) => {
+  const getCatLabel = useCallback((key: string) => {
     const custom = customCategories.find(c => c.id === key);
     if (custom) return lang === 'el' ? custom.name : (custom.nameEn || custom.name);
     return t(key as any);
-  };
+  }, [customCategories, lang, t]);
 
   const filtered = useMemo(() => {
     let list = products;
@@ -52,49 +52,45 @@ export default function CatalogPage() {
     return map;
   }, [filtered]);
 
-  const handleSave = (data: Parameters<typeof addProduct>[0]) => {
+  const handleSave = useCallback((data: Parameters<typeof addProduct>[0]) => {
     if (editing) {
       updateProduct(editing.id, data);
       setEditing(null);
     } else {
       addProduct(data);
     }
-  };
+  }, [editing, updateProduct, addProduct]);
 
-  const handleDelete = (p: Product) => {
-    const idx = products.findIndex(pr => pr.id === p.id);
-    const deletedProduct = { ...p };
+  const handleDelete = useCallback((p: Product) => {
     const snapshot = [...products];
     deleteProduct(p.id);
     const name = lang === 'el' ? p.name : (p.nameEn || p.name);
     showUndo(`"${name}" ${t('deleted').toLowerCase()}`, () => {
-      const arr = [...snapshot];
-      setAllProducts(arr);
+      setAllProducts(snapshot);
     });
-  };
+  }, [products, deleteProduct, lang, t, setAllProducts]);
 
-  const handleToggleFavorite = (p: Product) => {
+  const handleToggleFavorite = useCallback((p: Product) => {
     toggleFavorite(p.id);
     toast({
       title: p.favorite ? t('favoriteRemoved') : t('favoriteAdded'),
       duration: 1500,
     });
-  };
+  }, [toggleFavorite, t]);
 
-  const handleBarcodeScan = (barcode: string) => {
+  const handleBarcodeScan = useCallback((barcode: string) => {
     setScannerOpen(false);
     const found = products.find(p => p.barcode === barcode);
     if (found) {
       setSearch(lang === 'el' ? found.name : (found.nameEn || found.name));
       setFilterCat('all');
     } else {
-      // Open form prefilled with barcode
       setEditing({ barcode } as any);
       setFormOpen(true);
     }
-  };
+  }, [products, lang]);
 
-  const favCount = products.filter(p => p.favorite).length;
+  const favCount = useMemo(() => products.filter(p => p.favorite).length, [products]);
 
   return (
     <div className="max-w-lg mx-auto">
@@ -203,7 +199,7 @@ export default function CatalogPage() {
   );
 }
 
-function ProductCard({ product, lang, t, onEdit, onDelete, onToggleFav }: { product: Product; lang: string; t: any; onEdit: () => void; onDelete: () => void; onToggleFav: () => void }) {
+const ProductCard = memo(function ProductCard({ product, lang, t, onEdit, onDelete, onToggleFav }: { product: Product; lang: string; t: any; onEdit: () => void; onDelete: () => void; onToggleFav: () => void }) {
   const [showFullImage, setShowFullImage] = useState(false);
 
   return (
@@ -261,4 +257,4 @@ function ProductCard({ product, lang, t, onEdit, onDelete, onToggleFav }: { prod
       )}
     </>
   );
-}
+});
