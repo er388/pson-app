@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pson.io</string>
+    <string name="title_activity_main">Pson.io</string>
+    <string name="package_name">io.pson.app</string>
+    <string name="custom_url_scheme">io.pson.app</string>
+</resources>
