@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "app.lovable.smartcart"
+    namespace = "io.pson.app"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
         applicationId "io.pson.app"
@@ -18,7 +18,7 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file("\"G:\\Lovable Coding\\smart-shopper-pal\\pson_keystore.jks\"")
+            storeFile file("G:/Lovable Coding/smart-shopper-pal/pson_keystore.jks")
             storePassword "Muerte30091976!"
             keyAlias "pson_key"
             keyPassword "Muerte30091976!"
@@ -26,6 +26,7 @@ android {
     }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
