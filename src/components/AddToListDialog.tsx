@@ -6,6 +6,8 @@ import { useI18n } from '@/lib/i18n';
 import { Product, CATEGORY_EMOJI, Category, CATEGORY_COLORS } from '@/lib/types';
 import { useCustomCategories } from '@/lib/useStore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect } from 'react';
+import { backStack } from '@/lib/backStack';
 
 interface Props {
   open: boolean;
@@ -22,6 +24,13 @@ export default function AddToListDialog({ open, onClose, products, existingProdu
   const [search, setSearch] = useState('');
   const [filterCat, setFilterCat] = useState<Category | 'all'>('all');
   const [justChanged, setJustChanged] = useState<Map<string, 'added' | 'removed'>>(new Map());
+
+  useEffect(() => {
+  if (open) {
+    backStack.push(onClose);
+    return () => { backStack.pop(); };
+  }
+  }, [open, onClose]);
 
   const filtered = useMemo(() => {
     let list = products;
