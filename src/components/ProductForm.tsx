@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,18 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
   const [note, setNote] = useState(product?.note || '');
   const [image, setImage] = useState<string | undefined>(product?.image);
   const [alternatives, setAlternatives] = useState<string[]>(product?.alternatives || []);
+  useEffect(() => {
+    if (open) {
+      setName(product?.name || '');
+      setNameEn(product?.nameEn || '');
+      setCategory(product?.category || 'other');
+      setBarcode(product?.barcode || '');
+      setUnit(product?.unit || 'τεμ.');
+      setNote(product?.note || '');
+      setImage(product?.image);
+      setAlternatives(product?.alternatives || []);
+    }
+  }, [open]);
   const [altSearch, setAltSearch] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
