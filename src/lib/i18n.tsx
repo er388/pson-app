@@ -4,7 +4,7 @@ type Lang = 'el' | 'en';
 
 const translations = {
   el: {
-    shoppingList: 'Λίστα Ψωνιών',
+    shoppingList: 'Λίστα Αγορών',
     catalog: 'Κατάλογος',
     settings: 'Ρυθμίσεις',
     statistics: 'Στατιστικά',

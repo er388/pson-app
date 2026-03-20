@@ -1,73 +1,78 @@
-# Welcome to your pson project
+# Pson.io
 
-## Project info
+Εφαρμογή διαχείρισης λίστας αγορών και καταλόγου προϊόντων για Android.
 
-**URL**: https://pson.dev/projects/REPLACE_WITH_PROJECT_ID
+## Τι κάνει
 
-## How can I edit this code?
+- Λίστα αγορών με ομαδοποίηση ανά κατηγορία ή κατάστημα
+- Κατάλογος προϊόντων με barcode scanner και Open Food Facts integration
+- Στατιστικά δαπανών ανά κατηγορία, προϊόν και κατάστημα
+- Ιστορικό αγορών με δυνατότητα επαναφόρτωσης λίστας
+- Templates λίστας για επαναλαμβανόμενες αγορές
+- Loyalty cards με barcode/QR εμφάνιση
+- Cloud backup (Google Drive, OneDrive, Dropbox)
+- Πολύγλωσση υποστήριξη (Ελληνικά / English)
+- Themes: Light, Dark, AMOLED, Green, Blue, Red
 
-There are several ways of editing your application.
+## Tech Stack
 
-**Use pson**
+- React + Vite + TypeScript
+- Capacitor (Android wrapper)
+- shadcn-ui + Tailwind CSS
+- Target: Android 12+ (minSdk 26)
 
-Simply visit the [pson Project](https://pson.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via pson will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in pson.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+## Setup
+```bash
+git clone https://github.com/er388/pson-app
+cd pson-app
+npm install
 ```
 
-**Edit a file directly in GitHub**
+Για Android development, χρειάζεται:
+- Android Studio (Hedgehog ή νεότερο)
+- JDK 21
+- Android SDK 36
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Build
+```bash
+# Web assets
+npm run build
+npx cap sync android
 
-**Use GitHub Codespaces**
+# APK (από Android Studio)
+# Build → Generate Signed App Bundle or APK → APK → release
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# ή από terminal
+cd android
+./gradlew assembleRelease
+```
 
-## What technologies are used for this project?
+Το signed APK βρίσκεται στο `android/app/release/app-release.apk`.
 
-This project is built with:
+### Signing
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+Το keystore βρίσκεται εκτός repo. Τα credentials ορίζονται στο `android/app/build.gradle` → `signingConfigs.release` και στο `android/gradle.properties`.
 
-## How can I deploy this project?
+### ADB install
+```bash
+adb uninstall io.pson.app
+adb install android/app/release/app-release.apk
+```
 
-Simply open [pson](https://pson.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## Cloud Backup Setup
 
-## Can I connect a custom domain to my pson project?
+Για οδηγίες ρύθμισης OAuth για κάθε cloud provider, δες [CLOUD_BACKUP_SETUP.md](./CLOUD_BACKUP_SETUP.md).
 
-Yes, you can!
+## Known Issues
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+<!-- Συμπλήρωσε εδώ -->
 
-Read more here: [Setting up a custom domain](https://docs.pson.dev/features/custom-domain#custom-domain)
+## Contributing
+
+1. Fork το repo
+2. Δημιούργησε branch: `git checkout -b feature/my-feature`
+3. Commit: `git commit -m 'feat: add my feature'`
+4. Push: `git push origin feature/my-feature`
+5. Άνοιξε Pull Request
+
+Το project ακολουθεί [Semantic Versioning](https://semver.org/).
