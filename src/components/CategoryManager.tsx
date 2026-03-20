@@ -101,7 +101,7 @@ export default function CategoryManager() {
   const [editDefaultNameEn, setEditDefaultNameEn] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const sensors = useSensors(
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })

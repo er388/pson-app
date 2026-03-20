@@ -651,13 +651,13 @@ export default function ShoppingListPage() {
             <button onClick={() => setScannerOpen(true)} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors" title={t('scanBarcode')}>
               <ScanLine size={18} className="text-muted-foreground" />
             </button>
+            <button onClick={() => setImportDialogOpen(true)} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors" title="Import λίστας">
+              <Download size={18} className="text-muted-foreground" />
+            </button>
             {totalCount > 0 && (
               <>
                 <button onClick={handleShare} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors" title={t('share')}>
                   <Share2 size={18} className="text-muted-foreground" />
-                </button>
-                <button onClick={() => setImportDialogOpen(true)} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors" title="Import λίστας">
-                  <Download size={18} className="text-muted-foreground" />
                 </button>
                 <button onClick={() => setShowSaveTemplate(true)} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors" title={t('saveAsTemplate')}>
                   <BookmarkPlus size={18} className="text-muted-foreground" />
@@ -1113,14 +1113,32 @@ export default function ShoppingListPage() {
             <DialogTitle className="text-base">Import Λίστας</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <p className="text-xs text-muted-foreground">Επικόλλησε τη λίστα που έλαβες:</p>
+            <p className="text-xs text-muted-foreground">Επικόλλησε τη λίστα ή επίλεξε αρχείο:</p>
             <textarea
               value={importText}
               onChange={e => setImportText(e.target.value)}
-              className="w-full h-40 text-xs bg-background border border-border rounded-xl p-3 outline-none resize-none text-foreground"
+              className="w-full h-32 text-xs bg-background border border-border rounded-xl p-3 outline-none resize-none text-foreground"
               placeholder="🛒 Λίστα Ψωνιών..."
             />
-            <Button onClick={handleImportList} className="w-full rounded-xl">{t('confirm')}</Button>
+            <div className="flex gap-2">
+              <label className="flex-1 h-9 flex items-center justify-center gap-1.5 rounded-xl border border-border bg-secondary text-secondary-foreground text-xs font-medium cursor-pointer hover:bg-secondary/80 transition-colors">
+                <input
+                  type="file"
+                  accept=".txt,.json"
+                  className="hidden"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = ev => setImportText(ev.target?.result as string || '');
+                    reader.readAsText(file);
+                    e.target.value = '';
+                  }}
+                />
+                📎 Αρχείο
+              </label>
+              <Button onClick={handleImportList} className="flex-1 rounded-xl">{t('confirm')}</Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

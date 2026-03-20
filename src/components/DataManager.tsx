@@ -27,19 +27,29 @@ export default function DataManager({ onDataChanged }: Props) {
   const [resetMode, setResetMode] = useState<'merge' | 'replace'>('merge');
   const [pendingImportData, setPendingImportData] = useState<any>(null);
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const data = exportAppData();
     const json = JSON.stringify(data, null, 2);
+    const filename = `pson-io-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    
+    try {
+      const file = new File([json], filename, { type: 'application/json' });
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: filename });
+        toast({ title: 'Εξαγωγή δεδομένων', description: 'Αρχείο κοινοποιήθηκε επιτυχώς.' });
+        return;
+      }
+    } catch {}
+    
+    // fallback
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url;
-    a.download = `pson-io-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast({ title: 'Εξαγωγή δεδομένων', description: 'Το αρχείο αποθηκεύτηκε επιτυχώς.' });
+    toast({ title: 'Εξαγωγή δεδομένων', description: 'Αρχείο αποθηκεύτηκε.' });
   };
 
   const handleImportClick = () => {

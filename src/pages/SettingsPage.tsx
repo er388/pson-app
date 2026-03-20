@@ -52,8 +52,8 @@ export default function SettingsPage() {
     try { return localStorage.getItem('Pson-startup-page') || 'last'; } catch { return 'last'; }
   });
 
-  const [storesOpen, setStoresOpen] = useState(true);
-  const [templatesOpen, setTemplatesOpen] = useState(true);
+  const [storesOpen, setStoresOpen] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const sensors = useSensors(
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
