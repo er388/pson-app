@@ -45,33 +45,33 @@
   }
 
   .dark {
-    --background: 220 14% 8%;
-    --foreground: 210 12% 92%;
-    --card: 220 12% 12%;
-    --card-foreground: 210 12% 92%;
-    --popover: 220 12% 12%;
-    --popover-foreground: 210 12% 92%;
-    --primary: 199 65% 55%;
+    --background: 0 0% 8%;
+    --foreground: 0 0% 92%;
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 92%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 92%;
+    --primary: 152 38% 52%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 10% 17%;
-    --secondary-foreground: 210 10% 82%;
-    --muted: 220 10% 15%;
-    --muted-foreground: 210 8% 52%;
-    --accent: 199 65% 55%;
+    --secondary: 0 0% 16%;
+    --secondary-foreground: 0 0% 82%;
+    --muted: 0 0% 14%;
+    --muted-foreground: 0 0% 52%;
+    --accent: 152 38% 52%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62% 45%;
     --destructive-foreground: 0 0% 100%;
-    --border: 220 10% 20%;
-    --input: 220 10% 20%;
-    --ring: 199 65% 55%;
-    --sidebar-background: 220 14% 9%;
-    --sidebar-foreground: 210 10% 90%;
-    --sidebar-primary: 199 65% 55%;
+    --border: 0 0% 19%;
+    --input: 0 0% 19%;
+    --ring: 152 38% 52%;
+    --sidebar-background: 0 0% 9%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 152 38% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 10% 15%;
-    --sidebar-accent-foreground: 210 10% 90%;
-    --sidebar-border: 220 10% 18%;
-    --sidebar-ring: 199 65% 55%;
+    --sidebar-accent: 0 0% 14%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 0 0% 17%;
+    --sidebar-ring: 152 38% 52%;
   }
 
   /* AMOLED Black theme */
