@@ -74,7 +74,7 @@ const translations = {
     other: 'Άλλο',
     itemsCount: 'προϊόντα',
     appTitle: 'Pson.io',
-    version: 'Έκδοση 1.2.0',
+    version: 'Έκδοση 1.2.2',
     added: 'Προστέθηκε',
     removed: 'Αφαιρέθηκε',
     unit: 'Μονάδα μέτρησης',
@@ -213,6 +213,7 @@ const translations = {
     // Startup page
     startupPage: 'Αρχική σελίδα εκκίνησης',
     lastVisited: 'Τελευταία επισκεφθείσα',
+    productCatalog: 'Κατάλογος Προϊόντων',
   },
   en: {
     shoppingList: 'Shopping List',
@@ -285,7 +286,7 @@ const translations = {
     other: 'Other',
     itemsCount: 'items',
     appTitle: 'Pson.io',
-    version: 'Version 1.2.0',
+    version: 'Version 1.2.2',
     added: 'Added',
     removed: 'Removed',
     unit: 'Unit',
@@ -424,6 +425,7 @@ const translations = {
     // Startup page
     startupPage: 'Startup page',
     lastVisited: 'Last visited',
+    productCatalog: 'Product Catalog',
   },
 } as const;
 

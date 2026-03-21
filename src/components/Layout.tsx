@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const tabs = [
   { path: '/', icon: ShoppingCart, labelKey: 'shoppingList' as const },
-  { path: '/catalog', icon: Package, labelKey: 'catalog' as const },
   { path: '/history', icon: Clock, labelKey: 'history' as const },
   { path: '/stats', icon: BarChart3, labelKey: 'statistics' as const },
   { path: '/settings', icon: Settings, labelKey: 'settings' as const },

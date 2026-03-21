@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Cloud, Check, Upload, Download, RefreshCw } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Cloud, Check, Upload, Download, RefreshCw, Pencil, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { useI18n } from '@/lib/i18n';
-import { exportAppData, importAppData } from '@/lib/useStore';
+import { exportAppData } from '@/lib/useStore';
 import { toast } from '@/hooks/use-toast';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
@@ -12,8 +12,148 @@ type CloudProvider = 'googleDrive' | 'oneDrive' | 'dropbox';
 interface CloudConnection {
   provider: CloudProvider;
   connected: boolean;
-  token?: string;
 }
+
+// ─── CredentialField ──────────────────────────────────────────────────────────
+
+interface CredentialFieldProps {
+  label: string;
+  storageKey: string;
+  placeholder?: string;
+  helpText?: string;
+}
+
+function CredentialField({ label, storageKey, placeholder, helpText }: CredentialFieldProps) {
+  const [value, setValue] = useState('');
+  const [draft, setDraft] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      setValue(stored);
+      setIsSaved(true);
+    }
+  }, [storageKey]);
+
+  const handleSave = () => {
+    const trimmed = draft.trim();
+    if (!trimmed) return;
+    localStorage.setItem(storageKey, trimmed);
+    setValue(trimmed);
+    setIsSaved(true);
+    setIsEditing(false);
+    setDraft('');
+  };
+
+  const handleEdit = () => {
+    setDraft(value);
+    setIsSaved(false);
+    setIsEditing(true);
+  };
+
+  const handleDelete = () => {
+    localStorage.removeItem(storageKey);
+    setValue('');
+    setDraft('');
+    setIsSaved(false);
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setDraft('');
+    setIsEditing(false);
+    if (value) setIsSaved(true);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+
+      {/* Input row — ορατό όταν δεν είναι saved */}
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          isSaved ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-20 opacity-100'
+        }`}
+      >
+        <div className="flex gap-1.5">
+          <input
+            type="text"
+            value={draft}
+            onChange={e => setDraft(e.target.value)}
+            placeholder={placeholder ?? 'Εισάγετε κλειδί...'}
+            className="flex-1 h-8 px-3 text-sm rounded-lg border border-input bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            onKeyDown={e => {
+              if (e.key === 'Enter') handleSave();
+              if (e.key === 'Escape') handleCancel();
+            }}
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={!draft.trim()}
+            className="h-8 w-8 flex items-center justify-center rounded-lg border border-input bg-card hover:bg-accent disabled:opacity-40 transition-colors"
+            title="Αποθήκευση"
+            aria-label="Αποθήκευση"
+          >
+            <Check size={15} className="text-green-500" />
+          </button>
+          {isEditing && (
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="h-8 w-8 flex items-center justify-center rounded-lg border border-input bg-card hover:bg-accent transition-colors"
+              title="Ακύρωση"
+              aria-label="Ακύρωση"
+            >
+              <X size={15} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Saved row — ορατό όταν είναι saved */}
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          isSaved ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="flex items-center gap-2 h-8 px-3 rounded-lg border border-input bg-muted/40">
+          <span className="flex-1 text-sm text-muted-foreground tracking-[0.3em] select-none">
+            ••••••••••••
+          </span>
+          <button
+            type="button"
+            onClick={handleEdit}
+            className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent transition-colors"
+            title="Επεξεργασία"
+            aria-label="Επεξεργασία"
+          >
+            <Pencil size={13} />
+          </button>
+          <button
+            type="button"
+            onClick={handleDelete}
+            className="h-6 w-6 flex items-center justify-center rounded hover:bg-destructive/10 transition-colors"
+            title="Διαγραφή"
+            aria-label="Διαγραφή"
+          >
+            <Trash2 size={13} className="text-destructive" />
+          </button>
+        </div>
+      </div>
+
+      {helpText && (
+        <p className="text-xs text-muted-foreground">{helpText}</p>
+      )}
+    </div>
+  );
+}
+
+// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 function useCloudBackupSettings() {
   const [autoBackup, setAutoBackup] = useState(() => {
@@ -30,16 +170,7 @@ function useCloudBackupSettings() {
     localStorage.setItem('Pson-auto-backup', String(val));
   };
 
-  const setConnection = (provider: CloudProvider, connected: boolean, token?: string) => {
-    setConnections(prev => {
-      const next = prev.filter(c => c.provider !== provider);
-      next.push({ provider, connected, token });
-      localStorage.setItem('Pson-cloud-connections', JSON.stringify(next));
-      return next;
-    });
-  };
-
-    const disconnect = (provider: CloudProvider) => {
+  const disconnect = (provider: CloudProvider) => {
     setConnections(prev => {
       const next = prev.filter(c => c.provider !== provider);
       localStorage.setItem('Pson-cloud-connections', JSON.stringify(next));
@@ -47,31 +178,51 @@ function useCloudBackupSettings() {
     });
   };
 
-  const isConnected = (provider: CloudProvider) => connections.find(c => c.provider === provider)?.connected || false;
+  const isConnected = (provider: CloudProvider) =>
+    connections.find(c => c.provider === provider)?.connected || false;
 
-  return { autoBackup, toggleAutoBackup, connections, setConnection, isConnected, disconnect };
+  return { autoBackup, toggleAutoBackup, isConnected, disconnect };
 }
 
-const OAUTH_CONFIGS: Record<CloudProvider, { name: string; icon: string; authUrl: string; scope: string }> = {
+// ─── OAuth config ─────────────────────────────────────────────────────────────
+
+const OAUTH_CONFIGS: Record<CloudProvider, {
+  name: string;
+  icon: string;
+  credentialLabel: string;
+  credentialKey: string;
+  credentialPlaceholder: string;
+  credentialHelp: string;
+}> = {
   googleDrive: {
     name: 'Google Drive',
     icon: '/icons/google-drive.png',
-    authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
-    scope: 'https://www.googleapis.com/auth/drive.file',
+    credentialLabel: 'Client ID',
+    credentialKey: 'pson_gdrive_client_id',
+    credentialPlaceholder: 'xxxx.apps.googleusercontent.com',
+    credentialHelp: 'Google Cloud Console → APIs & Services → Credentials',
   },
   oneDrive: {
     name: 'OneDrive',
     icon: '/icons/onedrive.png',
-    authUrl: 'https://login.microsoftonline.com/common/oauth2/v2.0/authorize',
-    scope: 'Files.ReadWrite',
+    credentialLabel: 'Application (client) ID',
+    credentialKey: 'pson_onedrive_client_id',
+    credentialPlaceholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+    credentialHelp: 'Azure Portal → App registrations → Overview',
   },
   dropbox: {
     name: 'Dropbox',
     icon: '/icons/dropbox.png',
-    authUrl: 'https://www.dropbox.com/oauth2/authorize',
-    scope: '',
+    credentialLabel: 'App Key',
+    credentialKey: 'pson_dropbox_app_key',
+    credentialPlaceholder: 'xxxxxxxxxxxxxxx',
+    credentialHelp: 'Dropbox App Console → Settings',
   },
 };
+
+const PROVIDERS: CloudProvider[] = ['googleDrive', 'oneDrive', 'dropbox'];
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function CloudBackup() {
   const { t } = useI18n();
@@ -80,14 +231,22 @@ export default function CloudBackup() {
   const [backingUp, setBackingUp] = useState(false);
 
   const handleConnect = (provider: CloudProvider) => {
+    const key = localStorage.getItem(OAUTH_CONFIGS[provider].credentialKey);
+    if (!key) {
+      toast({
+        title: OAUTH_CONFIGS[provider].name,
+        description: 'Πρώτα εισάγετε το Client ID / App Key παρακάτω.',
+      });
+      return;
+    }
     toast({
-      title: `${OAUTH_CONFIGS[provider].name}`,
-      description: 'Η σύνδεση OAuth απαιτεί ρύθμιση API keys. Δες τις οδηγίες στο README.',
+      title: OAUTH_CONFIGS[provider].name,
+      description: 'Η σύνδεση OAuth απαιτεί ρύθμιση API keys. Δες τις οδηγίες στο CLOUD_BACKUP_SETUP.md.',
     });
   };
 
-  const handleBackupNow = async () => {
-    const connectedProviders = (['googleDrive', 'oneDrive', 'dropbox'] as CloudProvider[]).filter(isConnected);
+  const handleBackupNow = () => {
+    const connectedProviders = PROVIDERS.filter(isConnected);
     if (connectedProviders.length === 0) {
       const data = exportAppData();
       const json = JSON.stringify(data, null, 2);
@@ -118,8 +277,6 @@ export default function CloudBackup() {
     });
   };
 
-  const providers: CloudProvider[] = ['googleDrive', 'oneDrive', 'dropbox'];
-
   return (
     <section className="mb-6">
       <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-1.5">
@@ -127,33 +284,54 @@ export default function CloudBackup() {
       </h2>
 
       <div className="space-y-2">
-        {/* Provider connections */}
-        {providers.map(provider => {
+
+        {/* Provider cards */}
+        {PROVIDERS.map(provider => {
           const config = OAUTH_CONFIGS[provider];
           const connected = isConnected(provider);
           return (
-            <div key={provider} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border">
-              <img src={config.icon} alt={config.name} className="w-6 h-6 object-contain" />
-              <span className="flex-1 text-sm font-medium text-foreground">{config.name}</span>
-              {connected ? (
-                <div className="flex items-center gap-2">
-                  <span className="flex items-center gap-1 text-xs text-primary font-medium">
-                    <Check size={14} /> {t('connected')}
-                  </span>
+            <div key={provider} className="rounded-xl bg-card border border-border overflow-hidden">
+
+              {/* Header row */}
+              <div className="flex items-center gap-3 p-3">
+                <img src={config.icon} alt={config.name} className="w-6 h-6 object-contain" />
+                <span className="flex-1 text-sm font-medium text-foreground">{config.name}</span>
+                {connected ? (
+                  <div className="flex items-center gap-2">
+                    <span className="flex items-center gap-1 text-xs text-primary font-medium">
+                      <Check size={14} /> {t('connected')}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 text-xs rounded-lg text-destructive hover:bg-destructive/10"
+                      onClick={() => setDisconnectTarget(provider)}
+                    >
+                      Αποσύνδεση
+                    </Button>
+                  </div>
+                ) : (
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
-                    className="h-7 text-xs rounded-lg text-destructive hover:bg-destructive/10"
-                    onClick={() => setDisconnectTarget(provider)}
+                    className="h-7 text-xs rounded-lg"
+                    onClick={() => handleConnect(provider)}
                   >
-                    Αποσύνδεση
+                    {t('connect')}
                   </Button>
-                </div>
-              ) : (
-                <Button variant="outline" size="sm" className="h-7 text-xs rounded-lg" onClick={() => handleConnect(provider)}>
-                  {t('connect')}
-                </Button>
-              )}
+                )}
+              </div>
+
+              {/* Credential field — πάντα ορατό, κρύβεται μόνο το input όταν saved */}
+              <div className="px-3 pb-3 border-t border-border/50 pt-2.5 bg-muted/20">
+                <CredentialField
+                  label={config.credentialLabel}
+                  storageKey={config.credentialKey}
+                  placeholder={config.credentialPlaceholder}
+                  helpText={config.credentialHelp}
+                />
+              </div>
+
             </div>
           );
         })}
@@ -167,6 +345,7 @@ export default function CloudBackup() {
 
         {/* Manual backup */}
         <button
+          type="button"
           onClick={handleBackupNow}
           disabled={backingUp}
           className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border text-left transition-colors hover:bg-secondary/50 disabled:opacity-50"
@@ -181,6 +360,7 @@ export default function CloudBackup() {
 
         {/* Restore */}
         <button
+          type="button"
           onClick={handleRestore}
           className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border text-left transition-colors hover:bg-secondary/50"
         >
@@ -191,8 +371,10 @@ export default function CloudBackup() {
             <p className="text-sm font-medium text-foreground">{t('restoreFromCloud')}</p>
           </div>
         </button>
+
       </div>
 
+      {/* Disconnect dialog */}
       <AlertDialog open={!!disconnectTarget} onOpenChange={() => setDisconnectTarget(null)}>
         <AlertDialogContent className="rounded-2xl max-w-sm">
           <AlertDialogHeader>

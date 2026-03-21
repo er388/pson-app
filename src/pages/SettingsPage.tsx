@@ -16,6 +16,8 @@ import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSe
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Package, ChevronRight } from 'lucide-react';
 
 const THEME_OPTIONS: { value: ThemeMode; emoji: string }[] = [
   { value: 'system', emoji: '⚙️' },
@@ -51,6 +53,7 @@ export default function SettingsPage() {
   const [startupPage, setStartupPage] = useState(() => {
     try { return localStorage.getItem('Pson-startup-page') || 'last'; } catch { return 'last'; }
   });
+  const navigate = useNavigate();
 
   const [storesOpen, setStoresOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
@@ -227,6 +230,20 @@ export default function SettingsPage() {
 
       {/* Categories */}
       <CategoryManager />
+
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium text-muted-foreground px-1">{t('catalog')}</h3>
+        <button
+          onClick={() => navigate('/catalog')}
+          className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-card border hover:bg-accent transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Package className="h-5 w-5 text-muted-foreground" />
+            <span className="text-sm font-medium">{t('productCatalog')}</span>
+          </div>
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </div>
 
       {/* Templates */}
       <section className="mb-6">
