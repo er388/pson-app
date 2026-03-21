@@ -1,28 +1,17 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Plus, Trash2, Edit2, Check, X, Tag } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Tag, GripVertical, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useI18n } from '@/lib/i18n';
 import { useCustomCategories, useProducts } from '@/lib/useStore';
-import { DEFAULT_CATEGORIES, CATEGORY_EMOJI, CATEGORY_COLORS, CustomCategory, DefaultCategory } from '@/lib/types';
+import { CATEGORY_EMOJI, CATEGORY_COLORS, CustomCategory, DefaultCategory } from '@/lib/types';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, ChevronDown } from 'lucide-react';
-
-type DeleteTarget =
-  | { kind: 'custom'; category: CustomCategory }
-  | { kind: 'default'; key: DefaultCategory; name: string };
 
 const CUSTOM_COLORS = [
   'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300',
@@ -35,17 +24,47 @@ const CUSTOM_COLORS = [
 
 const EMOJI_OPTIONS = ['🛒', '🏷️', '🧃', '🥫', '🫘', '🧂', '🫒', '🍯', '🧈', '🥜', '🌮', '🍕', '🍰', '🧀', '🫙'];
 
-function SortableCategoryItem({ cat, lang, editingId, editName, editNameEn, countProducts, t, onEditStart, onEditNameChange, onEditNameEnChange, onSave, onCancelEdit, onDelete }: any) {
-  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: cat.id });
+type CatEntry = { id: string } & (
+  | { kind: 'default'; key: DefaultCategory }
+  | { kind: 'custom'; cat: CustomCategory }
+);
+
+function SortableCatItem({ entry, editingKey, editName, editNameEn, productCount, t, lang,
+  getDefaultDisplayName, defaultCategoryOverrides,
+  onEditStart, onEditNameChange, onEditNameEnChange, onSave, onCancelEdit, onDelete,
+}: {
+  entry: CatEntry; editingKey: string | null; editName: string; editNameEn: string;
+  productCount: number; t: any; lang: string;
+  getDefaultDisplayName: (k: DefaultCategory) => string;
+  defaultCategoryOverrides: Partial<Record<DefaultCategory, { name: string; nameEn?: string }>>;
+  onEditStart: () => void; onEditNameChange: (v: string) => void; onEditNameEnChange: (v: string) => void;
+  onSave: () => void; onCancelEdit: () => void; onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: entry.id });
+  const isEditing = editingKey === entry.id;
+
+  const emoji = entry.kind === 'default' ? (CATEGORY_EMOJI[entry.key] || '📦') : entry.cat.emoji;
+  const color = entry.kind === 'default' ? (CATEGORY_COLORS[entry.key] || 'bg-secondary') : entry.cat.color;
+  const displayName = entry.kind === 'default'
+    ? getDefaultDisplayName(entry.key)
+    : (lang === 'el' ? entry.cat.name : (entry.cat.nameEn || entry.cat.name));
+  const nameEn = entry.kind === 'default'
+    ? defaultCategoryOverrides[entry.key]?.nameEn
+    : entry.cat.nameEn;
+
   return (
-    <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border">
-      <button {...attributes} {...listeners} className="text-muted-foreground/50 touch-none">
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition }}
+      className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border"
+    >
+      <button {...attributes} {...listeners} className="text-muted-foreground/50 touch-none cursor-grab active:cursor-grabbing">
         <GripVertical size={16} />
       </button>
-      <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${cat.color}`}>
-        {cat.emoji}
+      <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0 ${color}`}>
+        {emoji}
       </span>
-      {editingId === cat.id ? (
+      {isEditing ? (
         <div className="flex-1 flex items-center gap-2">
           <Input value={editName} onChange={e => onEditNameChange(e.target.value)} className="h-8 text-sm" placeholder="Όνομα (EL)" />
           <Input value={editNameEn} onChange={e => onEditNameEnChange(e.target.value)} className="h-8 text-sm w-24" placeholder="EN" />
@@ -59,10 +78,10 @@ function SortableCategoryItem({ cat, lang, editingId, editName, editNameEn, coun
       ) : (
         <>
           <div className="flex-1 min-w-0">
-            <span className="text-sm font-medium text-foreground">{lang === 'el' ? cat.name : (cat.nameEn || cat.name)}</span>
-            {cat.nameEn && lang === 'el' && <span className="text-xs text-muted-foreground ml-2">{cat.nameEn}</span>}
+            <span className="text-sm font-medium text-foreground">{displayName}</span>
+            {lang === 'el' && nameEn && <span className="text-xs text-muted-foreground ml-2">{nameEn}</span>}
           </div>
-          <span className="text-xs text-muted-foreground">{countProducts(cat.id)} {t('itemsCount')}</span>
+          <span className="text-xs text-muted-foreground shrink-0">{productCount} {t('itemsCount')}</span>
           <button onClick={onEditStart} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors">
             <Edit2 size={15} />
           </button>
@@ -78,38 +97,25 @@ function SortableCategoryItem({ cat, lang, editingId, editName, editNameEn, coun
 export default function CategoryManager() {
   const { t, lang } = useI18n();
   const {
-    customCategories,
-    addCategory,
-    updateCategory,
-    removeCategory,
-    setAllCategories,
-    defaultCategoryOverrides,
-    updateDefaultCategory,
-    hideDefaultCategory,
-    hiddenDefaultCategories,
+    customCategories, addCategory, updateCategory, removeCategory,
+    reorderCategories, allCategoryKeys,
+    defaultCategoryOverrides, updateDefaultCategory, hideDefaultCategory,
   } = useCustomCategories();
   const { products, setAllProducts } = useProducts();
 
   const [newName, setNewName] = useState('');
   const [newNameEn, setNewNameEn] = useState('');
   const [newEmoji, setNewEmoji] = useState('🏷️');
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editNameEn, setEditNameEn] = useState('');
-  const [editingDefaultKey, setEditingDefaultKey] = useState<DefaultCategory | null>(null);
-  const [editDefaultName, setEditDefaultName] = useState('');
-  const [editDefaultNameEn, setEditDefaultNameEn] = useState('');
-  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<CatEntry | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+
   const sensors = useSensors(
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
-  );
-
-  const visibleDefaultCategories = useMemo(
-    () => DEFAULT_CATEGORIES.filter(c => !hiddenDefaultCategories.includes(c)),
-    [hiddenDefaultCategories],
   );
 
   const productCounts = useMemo(() => {
@@ -118,71 +124,84 @@ export default function CategoryManager() {
     return map;
   }, [products]);
 
-  const countProducts = useCallback((catKey: string) => productCounts.get(catKey) || 0, [productCounts]);
+  const orderedEntries = useMemo<CatEntry[]>(() => {
+    return allCategoryKeys.map(key => {
+      if (key.startsWith('custom_')) {
+        const cat = customCategories.find(c => c.id === key);
+        if (!cat) return null;
+        return { id: key, kind: 'custom' as const, cat };
+      }
+      return { id: key, kind: 'default' as const, key: key as DefaultCategory };
+    }).filter((e): e is CatEntry => e !== null);
+  }, [allCategoryKeys, customCategories]);
 
-  const handleAdd = () => {
+  const getDefaultDisplayName = useCallback((key: DefaultCategory) => {
+    const override = defaultCategoryOverrides[key];
+    if (!override) return t(key as any);
+    return lang === 'el' ? override.name : (override.nameEn || override.name);
+  }, [defaultCategoryOverrides, lang, t]);
+
+  const handleDragEnd = useCallback(({ active, over }: any) => {
+    if (!over || active.id === over.id) return;
+    const oldIdx = orderedEntries.findIndex(e => e.id === active.id);
+    const newIdx = orderedEntries.findIndex(e => e.id === over.id);
+    reorderCategories(arrayMove(orderedEntries, oldIdx, newIdx).map(e => e.id));
+  }, [orderedEntries, reorderCategories]);
+
+  const startEdit = useCallback((entry: CatEntry) => {
+    setEditingKey(entry.id);
+    if (entry.kind === 'default') {
+      const override = defaultCategoryOverrides[entry.key];
+      setEditName(override?.name || t(entry.key as any));
+      setEditNameEn(override?.nameEn || '');
+    } else {
+      setEditName(entry.cat.name);
+      setEditNameEn(entry.cat.nameEn || '');
+    }
+  }, [defaultCategoryOverrides, t]);
+
+  const saveEdit = useCallback(() => {
+    if (!editingKey || !editName.trim()) return;
+    const entry = orderedEntries.find(e => e.id === editingKey);
+    if (!entry) return;
+    if (entry.kind === 'default') {
+      updateDefaultCategory(entry.key, editName.trim(), editNameEn.trim() || undefined);
+    } else {
+      updateCategory(entry.cat.id, { name: editName.trim(), nameEn: editNameEn.trim() || undefined });
+    }
+    setEditingKey(null);
+  }, [editingKey, editName, editNameEn, orderedEntries, updateDefaultCategory, updateCategory]);
+
+  const handleDelete = useCallback(() => {
+    if (!deleteTarget) return;
+    const key = deleteTarget.id;
+    if (productCounts.get(key)) {
+      setAllProducts(products.map(p => p.category === key ? { ...p, category: 'other' } : p));
+    }
+    if (deleteTarget.kind === 'default') {
+      hideDefaultCategory(deleteTarget.key);
+    } else {
+      removeCategory(deleteTarget.cat.id);
+    }
+    setDeleteTarget(null);
+  }, [deleteTarget, productCounts, products, setAllProducts, hideDefaultCategory, removeCategory]);
+
+  const handleAdd = useCallback(() => {
     if (!newName.trim()) return;
-    const colorIdx = customCategories.length % CUSTOM_COLORS.length;
     addCategory({
       name: newName.trim(),
       nameEn: newNameEn.trim() || undefined,
       emoji: newEmoji,
-      color: CUSTOM_COLORS[colorIdx],
+      color: CUSTOM_COLORS[customCategories.length % CUSTOM_COLORS.length],
     });
-    setNewName('');
-    setNewNameEn('');
-    setNewEmoji('🏷️');
+    setNewName(''); setNewNameEn(''); setNewEmoji('🏷️');
     setShowAddForm(false);
-  };
+  }, [newName, newNameEn, newEmoji, customCategories.length, addCategory]);
 
-  const startEdit = (cat: CustomCategory) => {
-    setEditingId(cat.id);
-    setEditName(cat.name);
-    setEditNameEn(cat.nameEn || '');
-  };
-
-  const saveEdit = (id: string) => {
-    if (!editName.trim()) return;
-    updateCategory(id, { name: editName.trim(), nameEn: editNameEn.trim() || undefined });
-    setEditingId(null);
-  };
-
-  const startDefaultEdit = (key: DefaultCategory) => {
-    const override = defaultCategoryOverrides[key];
-    setEditingDefaultKey(key);
-    setEditDefaultName(override?.name || t(key as any));
-    setEditDefaultNameEn(override?.nameEn || '');
-  };
-
-  const saveDefaultEdit = (key: DefaultCategory) => {
-    if (!editDefaultName.trim()) return;
-    updateDefaultCategory(key, editDefaultName.trim(), editDefaultNameEn.trim() || undefined);
-    setEditingDefaultKey(null);
-  };
-
-  const handleDelete = () => {
-    if (!deleteTarget) return;
-
-    const targetKey = deleteTarget.kind === 'custom' ? deleteTarget.category.id : deleteTarget.key;
-
-    if (countProducts(targetKey) > 0) {
-      setAllProducts(products.map(p => (p.category === targetKey ? { ...p, category: 'other' } : p)));
-    }
-
-    if (deleteTarget.kind === 'custom') {
-      removeCategory(deleteTarget.category.id);
-    } else {
-      hideDefaultCategory(deleteTarget.key);
-    }
-
-    setDeleteTarget(null);
-  };
-
-  const getDefaultDisplayName = (key: DefaultCategory) => {
-    const override = defaultCategoryOverrides[key];
-    if (!override) return t(key as any);
-    return lang === 'el' ? override.name : (override.nameEn || override.name);
-  };
+  const deleteTargetName = deleteTarget
+    ? deleteTarget.kind === 'default' ? getDefaultDisplayName(deleteTarget.key) : deleteTarget.cat.name
+    : '';
+  const deleteTargetCount = deleteTarget ? (productCounts.get(deleteTarget.id) || 0) : 0;
 
   return (
     <section className="mb-6">
@@ -193,112 +212,56 @@ export default function CategoryManager() {
       </button>
 
       {isOpen && (
-      <>
-            <div className="space-y-1.5 mb-3">
-              {visibleDefaultCategories.map(c => {
-                const override = defaultCategoryOverrides[c];
-                return (
-                  <div key={c} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border">
-                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${CATEGORY_COLORS[c]}`}>
-                      {CATEGORY_EMOJI[c]}
-                    </span>
-                    {editingDefaultKey === c ? (
-                      <div className="flex-1 flex items-center gap-2">
-                        <Input value={editDefaultName} onChange={e => setEditDefaultName(e.target.value)} className="h-8 text-sm" placeholder="Όνομα (EL)" />
-                        <Input value={editDefaultNameEn} onChange={e => setEditDefaultNameEn(e.target.value)} className="h-8 text-sm w-24" placeholder="EN" />
-                        <button onClick={() => saveDefaultEdit(c)} className="w-7 h-7 rounded-lg flex items-center justify-center text-primary hover:bg-primary/10">
-                          <Check size={15} />
-                        </button>
-                        <button onClick={() => setEditingDefaultKey(null)} className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary">
-                          <X size={15} />
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-sm font-medium text-foreground">{getDefaultDisplayName(c)}</span>
-                          {lang === 'el' && override?.nameEn && <span className="text-xs text-muted-foreground ml-2">{override.nameEn}</span>}
-                        </div>
-                        <span className="text-xs text-muted-foreground">{countProducts(c)} {t('itemsCount')}</span>
-                        <button onClick={() => startDefaultEdit(c)} className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-secondary transition-colors">
-                          <Edit2 size={15} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget({ kind: 'default', key: c, name: getDefaultDisplayName(c) })}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {customCategories.length > 0 && (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={({ active, over }) => {
-                if (over && active.id !== over.id) {
-                  const oldIdx = customCategories.findIndex(c => c.id === active.id);
-                  const newIdx = customCategories.findIndex(c => c.id === over.id);
-                  setAllCategories(arrayMove(customCategories, oldIdx, newIdx));
-                }
-              }}>
-                <SortableContext items={customCategories.map(c => c.id)} strategy={verticalListSortingStrategy}>
-                  <div className="space-y-1.5 mb-3">
-                    {customCategories.map(cat => (
-                      <SortableCategoryItem
-                        key={cat.id}
-                        cat={cat}
-                        lang={lang}
-                        editingId={editingId}
-                        editName={editName}
-                        editNameEn={editNameEn}
-                        countProducts={countProducts}
-                        t={t}
-                        onEditStart={() => startEdit(cat)}
-                        onEditNameChange={setEditName}
-                        onEditNameEnChange={setEditNameEn}
-                        onSave={() => saveEdit(cat.id)}
-                        onCancelEdit={() => setEditingId(null)}
-                        onDelete={() => setDeleteTarget({ kind: 'custom', category: cat })}
-                      />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            )}
-
-            {showAddForm ? (
-              <div className="p-3 rounded-xl bg-card border border-border space-y-3">
-                <div className="flex gap-2 flex-wrap">
-                  {EMOJI_OPTIONS.map(e => (
-                    <button
-                      key={e}
-                      onClick={() => setNewEmoji(e)}
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-colors ${newEmoji === e ? 'bg-primary/20 ring-2 ring-primary' : 'bg-secondary'}`}
-                    >
-                      {e}
-                    </button>
-                  ))}
-                </div>
-                <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Όνομα κατηγορίας (EL)" className="text-sm h-9" />
-                <Input value={newNameEn} onChange={e => setNewNameEn(e.target.value)} placeholder="Category name (EN)" className="text-sm h-9" />
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="flex-1 rounded-xl" onClick={() => setShowAddForm(false)}>
-                    {t('cancel')}
-                  </Button>
-                  <Button size="sm" className="flex-1 rounded-xl" onClick={handleAdd}>
-                    {t('save')}
-                  </Button>
-                </div>
+        <>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={orderedEntries.map(e => e.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-1.5 mb-3">
+                {orderedEntries.map(entry => (
+                  <SortableCatItem
+                    key={entry.id}
+                    entry={entry}
+                    editingKey={editingKey}
+                    editName={editName}
+                    editNameEn={editNameEn}
+                    productCount={productCounts.get(entry.id) || 0}
+                    t={t} lang={lang}
+                    getDefaultDisplayName={getDefaultDisplayName}
+                    defaultCategoryOverrides={defaultCategoryOverrides}
+                    onEditStart={() => startEdit(entry)}
+                    onEditNameChange={setEditName}
+                    onEditNameEnChange={setEditNameEn}
+                    onSave={saveEdit}
+                    onCancelEdit={() => setEditingKey(null)}
+                    onDelete={() => setDeleteTarget(entry)}
+                  />
+                ))}
               </div>
-            ) : (
-              <Button variant="outline" size="sm" className="w-full rounded-xl" onClick={() => setShowAddForm(true)}>
-                <Plus size={16} className="mr-1.5" /> Προσθήκη κατηγορίας
-              </Button>
-            )}
-            </>
+            </SortableContext>
+          </DndContext>
+
+          {showAddForm ? (
+            <div className="p-3 rounded-xl bg-card border border-border space-y-3">
+              <div className="flex gap-2 flex-wrap">
+                {EMOJI_OPTIONS.map(e => (
+                  <button key={e} onClick={() => setNewEmoji(e)}
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-colors ${newEmoji === e ? 'bg-primary/20 ring-2 ring-primary' : 'bg-secondary'}`}>
+                    {e}
+                  </button>
+                ))}
+              </div>
+              <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Όνομα κατηγορίας (EL)" className="text-sm h-9" />
+              <Input value={newNameEn} onChange={e => setNewNameEn(e.target.value)} placeholder="Category name (EN)" className="text-sm h-9" />
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="flex-1 rounded-xl" onClick={() => setShowAddForm(false)}>{t('cancel')}</Button>
+                <Button size="sm" className="flex-1 rounded-xl" onClick={handleAdd}>{t('save')}</Button>
+              </div>
+            </div>
+          ) : (
+            <Button variant="outline" size="sm" className="w-full rounded-xl" onClick={() => setShowAddForm(true)}>
+              <Plus size={16} className="mr-1.5" /> Προσθήκη κατηγορίας
+            </Button>
+          )}
+        </>
       )}
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
@@ -306,17 +269,14 @@ export default function CategoryManager() {
           <AlertDialogHeader>
             <AlertDialogTitle>{t('delete')}</AlertDialogTitle>
             <AlertDialogDescription>
-              {deleteTarget && countProducts(deleteTarget.kind === 'custom' ? deleteTarget.category.id : deleteTarget.key) > 0
-                ? `Η κατηγορία "${deleteTarget.kind === 'custom' ? deleteTarget.category.name : deleteTarget.name}" περιέχει ${countProducts(deleteTarget.kind === 'custom' ? deleteTarget.category.id : deleteTarget.key)} προϊόντα. Τα προϊόντα θα μεταφερθούν στην κατηγορία "Άλλο".`
-                : `Θέλετε να διαγράψετε την κατηγορία "${deleteTarget?.kind === 'custom' ? deleteTarget.category.name : deleteTarget?.name}";`}
+              {deleteTargetCount > 0
+                ? `Η κατηγορία "${deleteTargetName}" περιέχει ${deleteTargetCount} προϊόντα. Τα προϊόντα θα μεταφερθούν στην κατηγορία "Άλλο".`
+                : `Θέλετε να διαγράψετε την κατηγορία "${deleteTargetName}";`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-xl">{t('cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={handleDelete}
-            >
+            <AlertDialogAction className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDelete}>
               {t('delete')}
             </AlertDialogAction>
           </AlertDialogFooter>

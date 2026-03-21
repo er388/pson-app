@@ -16,8 +16,8 @@ import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSe
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { Package, ChevronRight } from 'lucide-react';
+import { Package } from 'lucide-react';
+import CatalogModal from '@/components/CatalogModal';
 
 const THEME_OPTIONS: { value: ThemeMode; emoji: string }[] = [
   { value: 'system', emoji: '⚙️' },
@@ -53,7 +53,8 @@ export default function SettingsPage() {
   const [startupPage, setStartupPage] = useState(() => {
     try { return localStorage.getItem('Pson-startup-page') || 'last'; } catch { return 'last'; }
   });
-  const navigate = useNavigate();
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [catalogModalOpen, setCatalogModalOpen] = useState(false);
 
   const [storesOpen, setStoresOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
@@ -231,19 +232,35 @@ export default function SettingsPage() {
       {/* Categories */}
       <CategoryManager />
 
-      <div className="space-y-2">
-        <h3 className="text-sm font-medium text-muted-foreground px-1">{t('catalog')}</h3>
+      {/* Catalog */}
+      <section className="mb-6">
         <button
-          onClick={() => navigate('/catalog')}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-lg bg-card border hover:bg-accent transition-colors"
+          onClick={() => setCatalogOpen(v => !v)}
+          className="w-full flex items-center gap-1.5 mb-3"
         >
-          <div className="flex items-center gap-3">
-            <Package className="h-5 w-5 text-muted-foreground" />
-            <span className="text-sm font-medium">{t('productCatalog')}</span>
-          </div>
-          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+          <Package size={14} className="text-muted-foreground" />
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex-1 text-left">
+            {t('productCatalog')}
+          </h2>
+          <ChevronDown size={14} className={`text-muted-foreground transition-transform ${catalogOpen ? 'rotate-180' : ''}`} />
         </button>
-      </div>
+        {catalogOpen && (
+          <button
+            onClick={() => setCatalogModalOpen(true)}
+            className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border text-left transition-colors hover:bg-secondary/50"
+          >
+            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Package size={18} className="text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-foreground">{t('productCatalog')}</p>
+              <p className="text-[11px] text-muted-foreground">Drag-and-drop αναδιάταξη προϊόντων</p>
+            </div>
+          </button>
+        )}
+      </section>
+
+      <CatalogModal open={catalogModalOpen} onClose={() => setCatalogModalOpen(false)} />
 
       {/* Templates */}
       <section className="mb-6">

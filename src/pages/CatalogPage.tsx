@@ -35,13 +35,10 @@ export default function CatalogPage() {
       const q = search.toLowerCase();
       list = list.filter(p => p.name.toLowerCase().includes(q) || p.nameEn?.toLowerCase().includes(q));
     }
-    return [...list].sort((a, b) => {
-      if (a.favorite && !b.favorite) return -1;
-      if (!a.favorite && b.favorite) return 1;
-      return 0;
-    });
+    return list;
   }, [products, filterCat, search]);
 
+  // Respect allCategoryKeys order (from DnD reordering) when grouping
   const grouped = useMemo(() => {
     const map = new Map<Category, Product[]>();
     filtered.forEach(p => {
@@ -49,8 +46,10 @@ export default function CatalogPage() {
       arr.push(p);
       map.set(p.category, arr);
     });
-    return map;
-  }, [filtered]);
+    const ordered = new Map<Category, Product[]>();
+    allCategoryKeys.forEach(k => { if (map.has(k)) ordered.set(k, map.get(k)!); });
+    return ordered;
+  }, [filtered, allCategoryKeys]);
 
   const handleSave = useCallback((data: Parameters<typeof addProduct>[0]) => {
     if (editing) {

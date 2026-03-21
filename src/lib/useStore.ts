@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Product, ShoppingItem, Store, PurchaseRecord, CompletedPurchase, Category, DefaultCategory, CustomCategory, AppData, DEFAULT_CATEGORIES, DEFAULT_CATEGORY_EMOJI, DEFAULT_CATEGORY_COLORS, CATEGORY_EMOJI, CATEGORY_COLORS, ProductUnit, ListTemplate, Budget, LoyaltyCard } from './types';
 
 function useLocalStorage<T>(key: string, initial: T): [T, React.Dispatch<React.SetStateAction<T>>] {
@@ -251,15 +251,15 @@ export function useTemplates() {
   return { templates, addTemplate, removeTemplate, updateTemplate, setAllTemplates };
 }
 
+type CategoryOverrides = Partial<Record<DefaultCategory, { name: string; nameEn?: string }>>;
+
 export function useCustomCategories() {
   const [categories, setCategories] = useLocalStorage<CustomCategory[]>('Pson-custom-categories', []);
-  const [defaultCategoryOverrides, setDefaultCategoryOverrides] = useLocalStorage<
-    Partial<Record<DefaultCategory, { name: string; nameEn?: string }>>
-  >('Pson-default-category-overrides', {});
+  const [defaultCategoryOverrides, setDefaultCategoryOverrides] = useLocalStorage<CategoryOverrides>('Pson-default-category-overrides', {});
   const [hiddenDefaultCategories, setHiddenDefaultCategories] = useLocalStorage<DefaultCategory[]>(
-    'Pson-hidden-default-categories',
-    [],
+    'Pson-hidden-default-categories', [],
   );
+  const [categoryOrder, setCategoryOrder] = useLocalStorage<string[]>('Pson-category-order', []);
 
   useEffect(() => {
     Object.keys(CATEGORY_EMOJI).forEach(k => {
@@ -278,11 +278,27 @@ export function useCustomCategories() {
     window.dispatchEvent(new Event('Pson-category-overrides-updated'));
   }, [defaultCategoryOverrides]);
 
+  const visibleDefaultCategories = useMemo(
+    () => DEFAULT_CATEGORIES.filter(c => !hiddenDefaultCategories.includes(c)),
+    [hiddenDefaultCategories],
+  );
+
+  // Unified ordered list respecting stored category order
+  const allCategoryKeys = useMemo(() => {
+    const visible = [...visibleDefaultCategories, ...categories.map(c => c.id)];
+    if (categoryOrder.length === 0) return visible;
+    const vSet = new Set(visible);
+    const ordered = categoryOrder.filter(k => vSet.has(k));
+    visible.forEach(k => { if (!ordered.includes(k)) ordered.push(k); });
+    return ordered;
+  }, [visibleDefaultCategories, categories, categoryOrder]);
+
   const addCategory = useCallback((cat: Omit<CustomCategory, 'id'>) => {
     const newCat: CustomCategory = { ...cat, id: `custom_${uid()}` };
     setCategories(prev => [...prev, newCat]);
+    setCategoryOrder(prev => [...prev, newCat.id]);
     return newCat;
-  }, [setCategories]);
+  }, [setCategories, setCategoryOrder]);
 
   const updateCategory = useCallback((id: string, updates: Partial<CustomCategory>) => {
     setCategories(prev => prev.map(c => c.id === id ? { ...c, ...updates } : c));
@@ -290,31 +306,28 @@ export function useCustomCategories() {
 
   const removeCategory = useCallback((id: string) => {
     setCategories(prev => prev.filter(c => c.id !== id));
-  }, [setCategories]);
+    setCategoryOrder(prev => prev.filter(k => k !== id));
+  }, [setCategories, setCategoryOrder]);
 
   const setAllCategories = useCallback((cats: CustomCategory[]) => {
     setCategories(cats);
   }, [setCategories]);
 
+  const reorderCategories = useCallback((newOrder: string[]) => {
+    setCategoryOrder(newOrder);
+  }, [setCategoryOrder]);
+
   const updateDefaultCategory = useCallback((key: DefaultCategory, name: string, nameEn?: string) => {
     setDefaultCategoryOverrides(prev => ({
       ...prev,
-      [key]: {
-        name,
-        nameEn: nameEn?.trim() || undefined,
-      },
+      [key]: { name, nameEn: nameEn?.trim() || undefined },
     }));
   }, [setDefaultCategoryOverrides]);
 
   const hideDefaultCategory = useCallback((key: DefaultCategory) => {
-    setHiddenDefaultCategories(prev => (prev.includes(key) ? prev : [...prev, key]));
-  }, [setHiddenDefaultCategories]);
-
-  const visibleDefaultCategories = DEFAULT_CATEGORIES.filter(
-    key => !hiddenDefaultCategories.includes(key),
-  );
-
-  const allCategoryKeys: string[] = [...visibleDefaultCategories, ...categories.map(c => c.id)];
+    setHiddenDefaultCategories(prev => prev.includes(key) ? prev : [...prev, key]);
+    setCategoryOrder(prev => prev.filter(k => k !== key));
+  }, [setHiddenDefaultCategories, setCategoryOrder]);
 
   return {
     customCategories: categories,
@@ -322,6 +335,7 @@ export function useCustomCategories() {
     updateCategory,
     removeCategory,
     setAllCategories,
+    reorderCategories,
     allCategoryKeys,
     defaultCategoryOverrides,
     updateDefaultCategory,
