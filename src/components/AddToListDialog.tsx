@@ -8,6 +8,7 @@ import { useCustomCategories } from '@/lib/useStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
 import { backStack } from '@/lib/backStack';
+import { matchesSearch } from '@/lib/utils';
 
 interface Props {
   open: boolean;
@@ -16,12 +17,13 @@ interface Props {
   existingProductIds: string[];
   onAdd: (productId: string) => void;
   onRemove: (productId: string) => void;
+  initialSearch?: string;
 }
 
-export default function AddToListDialog({ open, onClose, products, existingProductIds, onAdd, onRemove }: Props) {
+export default function AddToListDialog({ open, onClose, products, existingProductIds, onAdd, onRemove, initialSearch }: Props) {
   const { t, lang } = useI18n();
   const { allCategoryKeys } = useCustomCategories();
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch || '');
   const [filterCat, setFilterCat] = useState<Category | 'all'>('all');
   const [justChanged, setJustChanged] = useState<Map<string, 'added' | 'removed'>>(new Map());
 
@@ -32,12 +34,16 @@ export default function AddToListDialog({ open, onClose, products, existingProdu
   }
   }, [open, onClose]);
 
+  useEffect(() => {
+    if (open) setSearch(initialSearch || '');
+  }, [open, initialSearch]);
+
   const filtered = useMemo(() => {
     let list = products;
     if (filterCat !== 'all') list = list.filter(p => p.category === filterCat);
     if (search) {
       const q = search.toLowerCase();
-      list = list.filter(p => p.name.toLowerCase().includes(q) || p.nameEn?.toLowerCase().includes(q));
+      list = list.filter(p => matchesSearch(p.name, search) || matchesSearch(p.nameEn || '', search));
     }
     return list.sort((a, b) => b.purchaseCount - a.purchaseCount);
   }, [products, filterCat, search]);

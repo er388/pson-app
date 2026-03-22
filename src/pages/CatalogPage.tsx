@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import { showUndo } from '@/components/UndoSnackbar';
+import { cn, matchesSearch } from '@/lib/utils';
 
 export default function CatalogPage() {
   const { t, lang } = useI18n();
@@ -32,8 +33,7 @@ export default function CatalogPage() {
     if (filterCat === 'favorites') list = list.filter(p => p.favorite);
     else if (filterCat !== 'all') list = list.filter(p => p.category === filterCat);
     if (search) {
-      const q = search.toLowerCase();
-      list = list.filter(p => p.name.toLowerCase().includes(q) || p.nameEn?.toLowerCase().includes(q));
+      list = list.filter(p => matchesSearch(p.name, search) || matchesSearch(p.nameEn || '', search));
     }
     return list;
   }, [products, filterCat, search]);

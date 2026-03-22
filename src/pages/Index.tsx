@@ -18,6 +18,7 @@ import ProductForm from '@/components/ProductForm';
 import { showUndo } from '@/components/UndoSnackbar';
 import { lookupBarcode } from '@/lib/openFoodFacts';
 import { LoyaltyCardQuickButton } from '@/components/LoyaltyCardManager';
+import { cn, matchesSearch } from '@/lib/utils';
 
 type SortMode = 'category' | 'store' | 'added';
 
@@ -107,7 +108,7 @@ export default function ShoppingListPage() {
     const q = search.toLowerCase();
     return items.filter(i => {
       const p = getProduct(i.productId);
-      return p && (p.name.toLowerCase().includes(q) || p.nameEn?.toLowerCase().includes(q));
+      return p && (matchesSearch(p.name, search) || matchesSearch(p.nameEn || '', search));
     });
   }, [items, search, products]);
 
@@ -810,6 +811,22 @@ export default function ShoppingListPage() {
           </div>
         )}
 
+        {search && filteredItems.length === 0 && totalCount > 0 && (
+          <div className="text-center py-12">
+            <p className="text-sm text-muted-foreground mb-3">
+              {lang === 'el' ? `Δεν βρέθηκε "${search}"` : `No results for "${search}"`}
+            </p>
+            <Button
+              variant="outline"
+              className="rounded-xl"
+              onClick={() => { setShowAdd(true); }}
+            >
+              <Plus size={16} className="mr-1.5" />
+              {lang === 'el' ? 'Προσθήκη στη λίστα' : 'Add to list'}
+            </Button>
+          </div>
+        )}
+
         {totalCount === 0 && (
           <div className="text-center py-20">
             <div className="text-6xl mb-4">🛒</div>
@@ -847,6 +864,7 @@ export default function ShoppingListPage() {
         existingProductIds={items.map(i => i.productId)}
         onAdd={pid => addItemWithDuplicateCheck(pid, 1, activeStoreId)}
         onRemove={pid => removeByProductId(pid)}
+        initialSearch={search}
       />
 
       {/* Barcode Scanner */}

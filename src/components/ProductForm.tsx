@@ -10,6 +10,7 @@ import { Product, DEFAULT_CATEGORIES, CATEGORY_EMOJI, CATEGORY_COLORS, Category,
 import { useCustomCategories, useProducts } from '@/lib/useStore';
 import BarcodeScanner from './BarcodeScanner';
 import { toast } from '@/hooks/use-toast';
+import { cn, matchesSearch } from '@/lib/utils';
 
 interface Props {
   open: boolean;
@@ -53,10 +54,9 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
 
   const altSearchResults = useMemo(() => {
     if (!altSearch.trim()) return [];
-    const q = altSearch.toLowerCase();
     return products
       .filter(p => p.id !== product?.id && !alternatives.includes(p.id))
-      .filter(p => p.name.toLowerCase().includes(q) || p.nameEn?.toLowerCase().includes(q))
+      .filter(p => matchesSearch(p.name, altSearch) || matchesSearch(p.nameEn || '', altSearch))
       .slice(0, 5);
   }, [altSearch, products, alternatives, product?.id]);
 
