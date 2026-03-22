@@ -180,7 +180,7 @@ export default function LoyaltyCardManager() {
           <div className="space-y-3">
             <div>
               <label className="text-xs font-medium text-foreground mb-1 block">{t('cardName')}</label>
-              <Input value={cardName} onChange={e => setCardName(e.target.value)} placeholder={t('cardNamePlaceholder')} className="h-9 rounded-xl text-sm" />
+              <Input value={cardName} onChange={e => setCardName(e.target.value)} placeholder={t('cardNamePlaceholder')} className="h-9 rounded-xl text-sm" lang="el" autoComplete="off" />
             </div>
             <div>
               <label className="text-xs font-medium text-foreground mb-1 block">{t('store')}</label>
@@ -198,7 +198,7 @@ export default function LoyaltyCardManager() {
             <div>
               <label className="text-xs font-medium text-foreground mb-1 block">{t('cardNumber')}</label>
               <div className="flex gap-2">
-                <Input value={cardNumber} onChange={e => { const v = e.target.value; setCardNumber(v); setCardFormat(detectFormat(v)); }} placeholder="1234567890123" className="h-9 rounded-xl text-sm flex-1" />
+                <Input value={cardNumber} onChange={e => { const v = e.target.value; setCardNumber(v); setCardFormat(detectFormat(v)); }} placeholder="1234567890123" className="h-9 rounded-xl text-sm flex-1" inputMode="numeric" autoComplete="off" />
                 <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl shrink-0" onClick={() => setScannerOpen(true)}>
                   <ScanLine size={16} />
                 </Button>

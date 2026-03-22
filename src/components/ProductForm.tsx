@@ -46,6 +46,7 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
   const [altSearch, setAltSearch] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [isListeningEn, setIsListeningEn] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -133,6 +134,33 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
     setIsListening(false);
   }, []);
 
+  const startEnVoiceInput = useCallback(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      toast({ title: t('voiceInput'), description: 'Voice input not supported in this browser.' });
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setNameEn(prev => prev ? `${prev} ${transcript}` : transcript);
+      setIsListeningEn(false);
+    };
+    recognition.onerror = () => setIsListeningEn(false);
+    recognition.onend = () => setIsListeningEn(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setIsListeningEn(true);
+  }, [t]);
+
+  const stopEnVoiceInput = useCallback(() => {
+    recognitionRef.current?.stop();
+    setIsListeningEn(false);
+  }, []);
+
   const addAlternative = useCallback((pid: string) => {
     if (alternatives.length >= 3) return;
     setAlternatives(prev => [...prev, pid]);
@@ -184,7 +212,14 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">{t('productName')} (EL)</Label>
               <div className="flex gap-2">
-                <Input value={name} onChange={e => setName(e.target.value)} placeholder="π.χ. Γάλα" className="h-10 flex-1" />
+                <Input
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="π.χ. Γάλα"
+                  className="h-10 flex-1"
+                  lang="el"
+                  autoComplete="off"
+                />
                 <Button
                   type="button"
                   variant={isListening ? 'destructive' : 'outline'}
@@ -210,7 +245,37 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">{t('productName')} (EN)</Label>
-              <Input value={nameEn} onChange={e => setNameEn(e.target.value)} placeholder="e.g. Milk" className="h-10" />
+              <div className="flex gap-2">
+                <Input
+                  value={nameEn}
+                  onChange={e => setNameEn(e.target.value)}
+                  placeholder="e.g. Milk"
+                  className="h-10 flex-1"
+                  lang="en"
+                  autoComplete="off"
+                />
+                <Button
+                  type="button"
+                  variant={isListeningEn ? 'destructive' : 'outline'}
+                  size="icon"
+                  className="h-10 w-10 shrink-0 rounded-xl relative"
+                  onClick={isListeningEn ? stopEnVoiceInput : startEnVoiceInput}
+                >
+                  {isListeningEn ? (
+                    <>
+                      <MicOff size={18} />
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-destructive animate-pulse" />
+                    </>
+                  ) : (
+                    <Mic size={18} />
+                  )}
+                </Button>
+              </div>
+              {isListeningEn && (
+                <p className="text-xs text-destructive animate-pulse flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-destructive inline-block" /> Listening...
+                </p>
+              )}
             </div>
             <div className="flex gap-3">
               <div className="flex-1 space-y-1.5">
@@ -243,12 +308,14 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
                 onChange={e => setNote(e.target.value.slice(0, 100))}
                 placeholder={t('notePlaceholder')}
                 className="h-10"
+                lang="el"
+                autoComplete="off"
               />
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">Barcode</Label>
               <div className="flex gap-2">
-                <Input value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="(προαιρετικό)" className="h-10 flex-1" />
+                <Input value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="(προαιρετικό)" className="h-10 flex-1" inputMode="numeric" />
                 <Button type="button" variant="outline" size="icon" className="h-10 w-10 shrink-0 rounded-xl" onClick={() => setScannerOpen(true)}>
                   <Camera size={18} />
                 </Button>

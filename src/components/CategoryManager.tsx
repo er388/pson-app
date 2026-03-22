@@ -66,8 +66,8 @@ function SortableCatItem({ entry, editingKey, editName, editNameEn, productCount
       </span>
       {isEditing ? (
         <div className="flex-1 flex items-center gap-2">
-          <Input value={editName} onChange={e => onEditNameChange(e.target.value)} className="h-8 text-sm" placeholder="Όνομα (EL)" />
-          <Input value={editNameEn} onChange={e => onEditNameEnChange(e.target.value)} className="h-8 text-sm w-24" placeholder="EN" />
+          <Input value={editName} onChange={e => onEditNameChange(e.target.value)} className="h-8 text-sm" placeholder="Όνομα (EL)" lang="el" autoComplete="off" />
+          <Input value={editNameEn} onChange={e => onEditNameEnChange(e.target.value)} className="h-8 text-sm w-24" placeholder="EN" lang="en" autoComplete="off" />
           <button onClick={onSave} className="w-7 h-7 rounded-lg flex items-center justify-center text-primary hover:bg-primary/10">
             <Check size={15} />
           </button>
@@ -249,8 +249,8 @@ export default function CategoryManager() {
                   </button>
                 ))}
               </div>
-              <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Όνομα κατηγορίας (EL)" className="text-sm h-9" />
-              <Input value={newNameEn} onChange={e => setNewNameEn(e.target.value)} placeholder="Category name (EN)" className="text-sm h-9" />
+              <Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Όνομα κατηγορίας (EL)" className="text-sm h-9" lang="el" autoComplete="off" />
+              <Input value={newNameEn} onChange={e => setNewNameEn(e.target.value)} placeholder="Category name (EN)" className="text-sm h-9" lang="en" autoComplete="off" />
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" className="flex-1 rounded-xl" onClick={() => setShowAddForm(false)}>{t('cancel')}</Button>
                 <Button size="sm" className="flex-1 rounded-xl" onClick={handleAdd}>{t('save')}</Button>

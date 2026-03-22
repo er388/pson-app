@@ -222,7 +222,7 @@ export default function SettingsPage() {
               </SortableContext>
             </DndContext>
             <div className="flex gap-2">
-              <Input value={newStore} onChange={e => setNewStore(e.target.value)} placeholder={t('storeName')} className="rounded-xl text-sm h-10" onKeyDown={e => e.key === 'Enter' && handleAddStore()} />
+              <Input value={newStore} onChange={e => setNewStore(e.target.value)} placeholder={t('storeName')} className="rounded-xl text-sm h-10" lang="el" autoComplete="off" onKeyDown={e => e.key === 'Enter' && handleAddStore()} />
               <Button onClick={handleAddStore} size="sm" className="rounded-xl px-4 h-10"><Plus size={16} /></Button>
             </div>
           </>
@@ -348,7 +348,7 @@ function SortableTemplateItem({ template, isEditing, editName, onEditStart, onEd
       </button>
       <Bookmark size={16} className="text-muted-foreground" />
       {isEditing ? (
-        <input className="flex-1 text-sm font-medium bg-background border border-primary rounded-lg px-2 py-1 outline-none text-foreground" value={editName} onChange={e => onEditChange(e.target.value)} onBlur={onEditDone} onKeyDown={e => e.key === 'Enter' && onEditDone()} autoFocus />
+        <input className="flex-1 text-sm font-medium bg-background border border-primary rounded-lg px-2 py-1 outline-none text-foreground" value={editName} onChange={e => onEditChange(e.target.value)} onBlur={onEditDone} onKeyDown={e => e.key === 'Enter' && onEditDone()} autoFocus lang="el" autoComplete="off" />
       ) : (
         <div className="flex-1 min-w-0">
           <span className="text-sm font-medium text-foreground">{template.name}</span>
