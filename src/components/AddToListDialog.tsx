@@ -18,9 +18,10 @@ interface Props {
   onAdd: (productId: string) => void;
   onRemove: (productId: string) => void;
   initialSearch?: string;
+  onAddNew?: () => void;
 }
 
-export default function AddToListDialog({ open, onClose, products, existingProductIds, onAdd, onRemove, initialSearch }: Props) {
+export default function AddToListDialog({ open, onClose, products, existingProductIds, onAdd, onRemove, initialSearch, onAddNew }: Props) {
   const { t, lang } = useI18n();
   const { allCategoryKeys } = useCustomCategories();
   const [search, setSearch] = useState(initialSearch || '');
@@ -147,6 +148,19 @@ export default function AddToListDialog({ open, onClose, products, existingProdu
               })}
             </AnimatePresence>
           </div>
+          {filtered.length === 0 && search && onAddNew && (
+            <div className="text-center py-12">
+              <p className="text-sm text-muted-foreground mb-3">
+                Δεν βρέθηκε «{search}»
+              </p>
+              <button
+                onClick={() => { onClose(); onAddNew(); }}
+                className="px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-medium"
+              >
+                + Προσθήκη νέου προϊόντος
+              </button>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

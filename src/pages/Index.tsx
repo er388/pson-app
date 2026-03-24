@@ -754,7 +754,12 @@ export default function ShoppingListPage() {
               {quickAddOpen ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
             </CollapsibleTrigger>
             <CollapsibleContent>
-              <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+              <div
+                className="flex gap-2 overflow-x-auto pb-2 no-scrollbar"
+                onTouchStart={e => e.stopPropagation()}
+                onTouchEnd={e => e.stopPropagation()}
+                onTouchMove={e => e.stopPropagation()}
+              >
                 {frequentProducts.map(p => {
                   const inList = existingProductIds.has(p.id);
                   return (
@@ -864,6 +869,7 @@ export default function ShoppingListPage() {
         existingProductIds={items.map(i => i.productId)}
         onAdd={pid => addItemWithDuplicateCheck(pid, 1, activeStoreId)}
         onRemove={pid => removeByProductId(pid)}
+        onAddNew={() => setShowProductForm(true)}
       />
 
       {/* Barcode Scanner */}
