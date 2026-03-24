@@ -819,7 +819,7 @@ export default function ShoppingListPage() {
             <Button
               variant="outline"
               className="rounded-xl"
-              onClick={() => { setShowAdd(true); }}
+              onClick={() => setShowAdd(true)}
             >
               <Plus size={16} className="mr-1.5" />
               {lang === 'el' ? 'Προσθήκη στη λίστα' : 'Add to list'}
@@ -864,7 +864,6 @@ export default function ShoppingListPage() {
         existingProductIds={items.map(i => i.productId)}
         onAdd={pid => addItemWithDuplicateCheck(pid, 1, activeStoreId)}
         onRemove={pid => removeByProductId(pid)}
-        initialSearch={search}
       />
 
       {/* Barcode Scanner */}
