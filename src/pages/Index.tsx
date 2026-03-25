@@ -756,9 +756,8 @@ export default function ShoppingListPage() {
             <CollapsibleContent>
               <div
                 className="flex gap-2 overflow-x-auto pb-2 no-scrollbar"
-                onTouchStart={e => e.stopPropagation()}
-                onTouchEnd={e => e.stopPropagation()}
-                onTouchMove={e => e.stopPropagation()}
+                data-no-swipe
+                style={{ touchAction: 'pan-x' }}
               >
                 {frequentProducts.map(p => {
                   const inList = existingProductIds.has(p.id);

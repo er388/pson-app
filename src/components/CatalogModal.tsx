@@ -12,6 +12,8 @@ import { toast } from '@/hooks/use-toast';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { backStack } from '@/lib/backStack';
+import { useEffect } from 'react';
 
 interface Props {
   open: boolean;
@@ -85,6 +87,13 @@ export default function CatalogModal({ open, onClose }: Props) {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      backStack.push(onClose);
+      return () => { backStack.pop(); };
+    }
+  }, [open, onClose]);
 
   const sensors = useSensors(
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Globe, Palette, Store, Plus, Trash2, Bookmark, ArrowUpFromLine, Home, Clock, Edit2, ChevronDown } from 'lucide-react';
+import { Globe, Palette, Store, Plus, Trash2, Bookmark, ArrowUpFromLine, Home, Clock, Edit2, ChevronDown, Cloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -53,11 +53,11 @@ export default function SettingsPage() {
   const [startupPage, setStartupPage] = useState(() => {
     try { return localStorage.getItem('Pson-startup-page') || 'last'; } catch { return 'last'; }
   });
-  const [catalogOpen, setCatalogOpen] = useState(false);
   const [catalogModalOpen, setCatalogModalOpen] = useState(false);
 
   const [storesOpen, setStoresOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
+  const [cloudOpen, setCloudOpen] = useState(false);
   const sensors = useSensors(
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -232,36 +232,6 @@ export default function SettingsPage() {
       {/* Categories */}
       <CategoryManager />
 
-      {/* Catalog */}
-      <section className="mb-6">
-        <button
-          onClick={() => setCatalogOpen(v => !v)}
-          className="w-full flex items-center gap-1.5 mb-3"
-        >
-          <Package size={14} className="text-muted-foreground" />
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex-1 text-left">
-            {t('productCatalog')}
-          </h2>
-          <ChevronDown size={14} className={`text-muted-foreground transition-transform ${catalogOpen ? 'rotate-180' : ''}`} />
-        </button>
-        {catalogOpen && (
-          <button
-            onClick={() => setCatalogModalOpen(true)}
-            className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border text-left transition-colors hover:bg-secondary/50"
-          >
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-              <Package size={18} className="text-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">{t('productCatalog')}</p>
-              <p className="text-[11px] text-muted-foreground">Drag-and-drop αναδιάταξη προϊόντων</p>
-            </div>
-          </button>
-        )}
-      </section>
-
-      <CatalogModal open={catalogModalOpen} onClose={() => setCatalogModalOpen(false)} />
-
       {/* Templates */}
       <section className="mb-6">
         <button onClick={() => setTemplatesOpen(v => !v)} className="w-full flex items-center gap-1.5 mb-3">
@@ -302,8 +272,33 @@ export default function SettingsPage() {
         )}
       </section>
 
+      {/* Catalog */}
+      <section className="mb-6">
+        <button
+          onClick={() => setCatalogModalOpen(true)}
+          className="w-full flex items-center gap-3 p-3 rounded-xl bg-card border border-border text-left transition-colors hover:bg-secondary/50"
+        >
+          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Package size={18} className="text-primary" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-foreground">{t('productCatalog')}</p>
+            <p className="text-[11px] text-muted-foreground">Drag-and-drop αναδιάταξη προϊόντων</p>
+          </div>
+        </button>
+      </section>
+
+      <CatalogModal open={catalogModalOpen} onClose={() => setCatalogModalOpen(false)} />
+
       {/* Cloud Backup */}
-      <CloudBackup />
+      <section className="mb-6">
+        <button onClick={() => setCloudOpen(v => !v)} className="w-full flex items-center gap-1.5 mb-3">
+          <Cloud size={14} className="text-muted-foreground" />
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex-1 text-left">{t('cloudBackup')}</h2>
+          <ChevronDown size={14} className={`text-muted-foreground transition-transform ${cloudOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {cloudOpen && <CloudBackup />}
+      </section>
 
       {/* Loyalty Cards */}
       <LoyaltyCardManager />

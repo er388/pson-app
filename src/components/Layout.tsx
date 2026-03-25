@@ -31,7 +31,15 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, [navigate]);
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
+    const el = e.target as HTMLElement;
+    if (el.closest('[data-no-swipe]')) return;
     touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  }, []);
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.target instanceof HTMLElement && e.target.closest('[data-no-swipe]')) {
+      touchStart.current = null;
+    }
   }, []);
 
   const onTouchEnd = useCallback((e: React.TouchEvent) => {
@@ -62,6 +70,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             transition={{ type: 'spring', stiffness: 300, damping: 30, mass: 0.8 }}
             className="absolute inset-0 overflow-y-auto pb-20"
             onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
           >
             {children}
