@@ -758,6 +758,9 @@ export default function ShoppingListPage() {
                 className="flex gap-2 overflow-x-auto pb-2 no-scrollbar"
                 data-no-swipe
                 style={{ touchAction: 'pan-x' }}
+                onTouchStart={e => e.stopPropagation()}
+                onTouchMove={e => e.stopPropagation()}
+                onTouchEnd={e => e.stopPropagation()}
               >
                 {frequentProducts.map(p => {
                   const inList = existingProductIds.has(p.id);
