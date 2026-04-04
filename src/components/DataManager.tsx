@@ -31,22 +31,25 @@ export default function DataManager({ onDataChanged }: Props) {
     const data = exportAppData();
     const json = JSON.stringify(data, null, 2);
     const filename = `pson-io-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    
-    try {
-      const file = new File([json], filename, { type: 'application/json' });
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+    const file = new File([json], filename, { type: 'application/json' });
+
+    if (navigator.share) {
+      try {
         await navigator.share({ files: [file], title: filename });
-        toast({ title: 'Εξαγωγή δεδομένων', description: 'Αρχείο κοινοποιήθηκε επιτυχώς.' });
         return;
+      } catch (e: any) {
+        if (e?.name === 'AbortError') return; // χρήστης ακύρωσε
+        // αν δεν υποστηρίζεται files, fall through
       }
-    } catch {}
-    
-    // fallback
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+    }
+
+    // Fallback για web / παλιό WebView
+    const url = URL.createObjectURL(file);
     const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click();
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast({ title: 'Εξαγωγή δεδομένων', description: 'Αρχείο αποθηκεύτηκε.' });

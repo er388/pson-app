@@ -281,7 +281,7 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
               <div className="flex-1 space-y-1.5">
                 <Label className="text-xs font-medium">{t('category')}</Label>
                 <Select value={category} onValueChange={v => setCategory(v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger onMouseDown={e => e.preventDefault()}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {allCategoryKeys.map(c => (
                       <SelectItem key={c} value={c}>{getCategoryLabel(c)}</SelectItem>
@@ -292,7 +292,7 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
               <div className="w-28 space-y-1.5">
                 <Label className="text-xs font-medium">{t('unit')}</Label>
                 <Select value={unit} onValueChange={v => setUnit(v as ProductUnit)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectTrigger onMouseDown={e => e.preventDefault()}><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {PRODUCT_UNITS.map(u => (
                       <SelectItem key={u} value={u}>{u}</SelectItem>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Globe, Palette, Store, Plus, Trash2, Bookmark, ArrowUpFromLine, Home, Clock, Edit2, ChevronDown, Cloud } from 'lucide-react';
+import { Globe, Palette, Store, Plus, Trash2, Bookmark, ArrowUpFromLine, Home, Clock, Edit2, ChevronDown, Cloud, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -58,6 +58,7 @@ export default function SettingsPage() {
   const [storesOpen, setStoresOpen] = useState(false);
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [cloudOpen, setCloudOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const sensors = useSensors(
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -113,7 +114,7 @@ export default function SettingsPage() {
             <Palette size={20} className="text-primary" />
             <p className="text-sm font-medium text-foreground flex-1">{t('themeMode')}</p>
             <Select value={theme} onValueChange={(val) => setTheme(val as ThemeMode)}>
-              <SelectTrigger className="w-44 h-9 rounded-xl text-xs">
+              <SelectTrigger className="w-44 h-9 rounded-xl text-xs" onMouseDown={e => e.preventDefault()}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -149,7 +150,7 @@ export default function SettingsPage() {
               value={String(historyLimit)}
               onValueChange={v => setHistoryLimit(Number(v))}
             >
-              <SelectTrigger className="w-24 h-9 rounded-xl text-xs">
+              <SelectTrigger className="w-24 h-9 rounded-xl text-xs" onMouseDown={e => e.preventDefault()}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -179,7 +180,7 @@ export default function SettingsPage() {
                 }
               }}
             >
-              <SelectTrigger className="w-44 h-9 rounded-xl text-xs">
+              <SelectTrigger className="w-44 h-9 rounded-xl text-xs" onMouseDown={e => e.preventDefault()}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -307,13 +308,95 @@ export default function SettingsPage() {
       <DataManager onDataChanged={() => window.location.reload()} />
 
       {/* App info */}
-      <section className="text-center pt-8">
-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-3">
-          <span className="text-2xl font-black text-primary">P</span>
-        </div>
-        <p className="text-lg font-bold text-foreground">{t('appTitle')}</p>
-        <p className="text-xs text-muted-foreground">{t('version')}</p>
-      </section>
+            <section className="text-center pt-8">
+              <button onClick={() => setHelpOpen(true)} className="inline-flex flex-col items-center gap-1 active:opacity-70 transition-opacity">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-3">
+                  <span className="text-2xl font-black text-primary">P</span>
+                </div>
+                <p className="text-lg font-bold text-foreground">{t('appTitle')}</p>
+                <p className="text-xs text-muted-foreground">{t('version')}</p>
+                <p className="text-xs text-primary mt-1">Οδηγίες χρήσης</p>
+              </button>
+            </section>
+
+            {/* Help Dialog */}
+            {helpOpen && (
+              <div className="fixed inset-0 z-[150] bg-background flex flex-col">
+                <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-border shrink-0">
+                  <h2 className="text-lg font-bold text-foreground">Οδηγίες Χρήσης</h2>
+                  <button onClick={() => setHelpOpen(false)} className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-secondary transition-colors">
+                    <X size={20} className="text-muted-foreground" />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+
+                  <HelpSection title="🛒 Λίστα Αγορών">
+                    <HelpItem q="Πώς προσθέτω αντικείμενο;" a="Πατήστε το + κουμπί κάτω δεξιά. Ανοίγει ο κατάλογος προϊόντων — αναζητήστε ή επιλέξτε από τη λίστα." />
+                    <HelpItem q="Τι είναι η Γρήγορη Προσθήκη;" a="Η οριζόντια λωρίδα στην κορυφή με συχνά αγοραζόμενα προϊόντα και αγαπημένα. Πατήστε για να προσθέσετε ή αφαιρέσετε αντικείμενο." />
+                    <HelpItem q="Πώς καταγράφω τιμή;" a="Πατήστε το «€ —» δεξιά από κάθε αντικείμενο. Πληκτρολογήστε την τιμή και πατήστε Enter." />
+                    <HelpItem q="Πώς ολοκληρώνω αγορά;" a="Τσεκάρετε τα αγορασμένα αντικείμενα, μετά πατήστε «Ολοκλήρωση αγοράς». Η αγορά αποθηκεύεται στο Ιστορικό." />
+                    <HelpItem q="Τι κάνει το Barcode scanner;" a="Σκανάρει barcode προϊόντος. Αν βρεθεί στον κατάλογό σας, προσθέτεται στη λίστα. Αν όχι, ψάχνει στο Open Food Facts και σας προτείνει να το προσθέσετε." />
+                    <HelpItem q="Πώς λειτουργεί ο Προϋπολογισμός;" a="Πατήστε το πορτοφόλι (💰) στην κορυφή. Ορίστε ποσό για όλα τα καταστήματα ή για συγκεκριμένο. Η μπάρα γίνεται κόκκινη αν υπερβείτε το όριο." />
+                    <HelpItem q="Πώς χρησιμοποιώ Templates;" a="Σώστε την τρέχουσα λίστα ως template με το 🔖+ κουμπί. Φορτώστε παλιά template με το 🔖 κουμπί — επιλέξτε Συγχώνευση ή Αντικατάσταση." />
+                    <HelpItem q="Πώς κοινοποιώ τη λίστα;" a="Πατήστε το κουμπί κοινοποίησης (↑) — ανοίγει το native Android share panel με τη λίστα σε μορφή κειμένου." />
+                    <HelpItem q="Τι γίνεται όταν αλλάζω κατάστημα;" a="Αν υπάρχουν αντικείμενα στη λίστα, η εφαρμογή ρωτά αν θέλετε να «παρκάρετε» τα αντικείμενα για το προηγούμενο κατάστημα. Μπορείτε να τα ανακτήσετε αργότερα από το banner που εμφανίζεται." />
+                  </HelpSection>
+
+                  <HelpSection title="📦 Κατάλογος Προϊόντων">
+                    <HelpItem q="Πού βρίσκεται ο κατάλογος;" a="Στις Ρυθμίσεις (⚙️), κάτω από τα Templates. Ανοίγει ως overlay χωρίς αλλαγή καρτέλας." />
+                    <HelpItem q="Πώς προσθέτω νέο προϊόν;" a="Μέσα στον κατάλογο, πατήστε + κάτω δεξιά. Συμπληρώστε ελληνικό όνομα (υποχρεωτικό), αγγλικό, κατηγορία, μονάδα, σημείωση, φωτογραφία ή barcode." />
+                    <HelpItem q="Πώς αναδιατάσσω προϊόντα;" a="Χωρίς φίλτρο/αναζήτηση, εμφανίζεται το ☰ handle αριστερά. Κρατήστε πατημένο και σύρετε." />
+                    <HelpItem q="Τι κάνει το αστεράκι (★);" a="Προσθέτει το προϊόν στα Αγαπημένα. Τα αγαπημένα εμφανίζονται πρώτα στη Γρήγορη Προσθήκη." />
+                    <HelpItem q="Τι είναι τα Εναλλακτικά;" a="Μπορείτε να ορίσετε έως 3 εναλλακτικά προϊόντα. Στη λίστα αγορών εμφανίζεται το ⇄ εικονίδιο για γρήγορη αντικατάσταση." />
+                  </HelpSection>
+
+                  <HelpSection title="📋 Ιστορικό">
+                    <HelpItem q="Τι αποθηκεύεται στο Ιστορικό;" a="Κάθε ολοκληρωμένη αγορά με ημερομηνία, κατάστημα, αντικείμενα και σύνολο." />
+                    <HelpItem q="Πώς επαναφορτώνω μια παλιά λίστα;" a="Πατήστε «Επαναφόρτωση» σε μια εγγραφή. Επιλέξτε Συγχώνευση (προσθέτει στην τρέχουσα) ή Αντικατάσταση." />
+                    <HelpItem q="Πώς σκανάρω απόδειξη;" a="Πατήστε το Scan Απόδειξης πάνω δεξιά. Τραβήξτε φωτογραφία ή επιλέξτε από γκαλερί. Το OCR αναγνωρίζει προϊόντα και τιμές (ακρίβεια εξαρτάται από ποιότητα φωτογραφίας)." />
+                  </HelpSection>
+
+                  <HelpSection title="📊 Στατιστικά">
+                    <HelpItem q="Τι δείχνουν τα Στατιστικά;" a="Μηνιαίες δαπάνες, κατανομή ανά κατηγορία, top προϊόντα, σύγκριση τιμών μεταξύ καταστημάτων." />
+                    <HelpItem q="Πώς φιλτράρω;" a="Επιλέξτε Εβδομάδα / Μήνας / Όλα και φιλτράρετε ανά κατάστημα από τις επιλογές στην κορυφή." />
+                  </HelpSection>
+
+                  <HelpSection title="⚙️ Ρυθμίσεις">
+                    <HelpItem q="Πώς προσθέτω κατάστημα;" a="Ρυθμίσεις → Καταστήματα → πληκτρολογήστε όνομα → +. Σύρετε για αναδιάταξη." />
+                    <HelpItem q="Πώς διαχειρίζομαι κατηγορίες;" a="Ρυθμίσεις → Κατηγορίες Προϊόντων. Σύρετε για αναδιάταξη, επεξεργαστείτε ονόματα (EL/EN), προσθέστε custom κατηγορίες με emoji." />
+                    <HelpItem q="Πώς αλλάζω θέμα;" a="Ρυθμίσεις → Θέμα εμφάνισης. Διαθέσιμα: Φωτεινό, Σκοτεινό, AMOLED, Πράσινο, Μπλε, Κόκκινο, Σύστημα." />
+                    <HelpItem q="Πώς κάνω backup τα δεδομένα;" a="Ρυθμίσεις → Cloud Backup → Backup τώρα. Ανοίγει το Android share panel — επιλέξτε Google Drive, Αρχεία, email κτλ." />
+                    <HelpItem q="Πώς επαναφέρω δεδομένα;" a="Ρυθμίσεις → Δεδομένα & Ασφάλεια → Εισαγωγή δεδομένων. Επιλέξτε το αρχείο JSON backup." />
+                    <HelpItem q="Τι είναι οι Κάρτες Loyalty;" a="Αποθηκεύστε barcode/QR καρτών πιστότητας. Εμφανίζονται αυτόματα στη λίστα αγορών όταν επιλέξετε το αντίστοιχο κατάστημα." />
+                    <HelpItem q="Τι κάνει το Smart Uncheck;" a="Όταν ξε-τσεκάρετε ένα αντικείμενο, μετακινείται αυτόματα στην κορυφή της λίστας." />
+                  </HelpSection>
+
+                  <p className="text-center text-xs text-muted-foreground pb-4">Pson.io — Made with ❤️ in Greece</p>
+                </div>
+              </div>
+            )}
+    </div>
+  );
+}
+
+function HelpSection({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border border-border rounded-2xl overflow-hidden">
+      <button onClick={() => setOpen(v => !v)} className="w-full flex items-center justify-between px-4 py-3 text-left">
+        <span className="text-sm font-semibold text-foreground">{title}</span>
+        <ChevronDown size={16} className={`text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="px-4 pb-4 space-y-3 border-t border-border/50 pt-3">{children}</div>}
+    </div>
+  );
+}
+
+function HelpItem({ q, a }: { q: string; a: string }) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-foreground mb-0.5">{q}</p>
+      <p className="text-xs text-muted-foreground leading-relaxed">{a}</p>
     </div>
   );
 }

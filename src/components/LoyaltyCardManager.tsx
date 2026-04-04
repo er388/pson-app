@@ -185,7 +185,7 @@ export default function LoyaltyCardManager() {
             <div>
               <label className="text-xs font-medium text-foreground mb-1 block">{t('store')}</label>
               <Select value={cardStoreId || '__none__'} onValueChange={v => setCardStoreId(v === '__none__' ? '' : v)}>
-                <SelectTrigger className="h-9 rounded-xl text-sm">
+                <SelectTrigger className="h-9 rounded-xl text-sm" onMouseDown={e => e.preventDefault()}>
                   <Store size={14} className="mr-1.5 text-muted-foreground" />
                   <SelectValue />
                 </SelectTrigger>

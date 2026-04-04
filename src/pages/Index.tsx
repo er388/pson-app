@@ -3,7 +3,7 @@ import { Plus, Search, Store, Trash2, Minus, ChevronDown, ChevronUp, CheckCircle
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useI18n } from '@/lib/i18n';
-import { useProducts, useShoppingList, useStores, usePurchaseHistory, useCompletedPurchases, useTemplates, useCustomCategories, useBudget } from '@/lib/useStore';
+import { useProducts, useShoppingList, useStores, usePurchaseHistory, useCompletedPurchases, useTemplates, useCustomCategories, useBudget, useParkedItems } from '@/lib/useStore';
 import { CATEGORY_EMOJI, CATEGORY_COLORS, formatPrice, Product, Budget } from '@/lib/types';
 import AddToListDialog from '@/components/AddToListDialog';
 import DuplicateDialog from '@/components/DuplicateDialog';
@@ -53,6 +53,8 @@ export default function ShoppingListPage() {
   const { templates, addTemplate, removeTemplate } = useTemplates();
   const { allCategoryKeys, customCategories } = useCustomCategories();
   const { budget, setBudget, clearBudget } = useBudget();
+  const { parked, park, clearPark, removeProduct: removeFromParked } = useParkedItems();
+  const [pendingStore, setPendingStore] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -214,6 +216,7 @@ export default function ShoppingListPage() {
     const item = rawItems.find(i => i.id === id);
     const wasChecked = item?.checked;
     toggleCheck(id);
+    if (item && !item.checked) removeFromParked(item.productId);
     
     // Smart uncheck: if unchecking, move to top
     if (wasChecked && smartUncheck) {
@@ -406,18 +409,18 @@ export default function ShoppingListPage() {
       text += `\n💰 Σύνολο: ${formatPrice(total)}`;
     }
 
+  if (navigator.share) {
     try {
-      if (navigator.share) {
-        await navigator.share({ text });
-      } else {
-        await navigator.clipboard.writeText(text);
-        toast({ title: t('copied') });
-      }
-    } catch {
+      await navigator.share({ text });
+    } catch (e: any) {
+      if (e?.name === 'AbortError') return;
       await navigator.clipboard.writeText(text);
       toast({ title: t('copied') });
     }
-  };
+  } else {
+    await navigator.clipboard.writeText(text);
+    toast({ title: t('copied') });
+  }
 
   const handleImportList = () => {
     const lines = importText.split('\n').map(l => l.trim()).filter(l => l.startsWith('- '));
@@ -672,8 +675,16 @@ export default function ShoppingListPage() {
         </div>
 
         <div className="flex gap-2 mb-3">
-          <Select value={activeStoreId || 'none'} onValueChange={v => setActiveStoreId(v === 'none' ? null : v)}>
-            <SelectTrigger className="h-9 rounded-xl text-sm">
+          <Select value={activeStoreId || 'none'} onValueChange={v => {
+              const newId = v === 'none' ? null : v;
+              const unchecked = rawItems.filter(i => !i.checked);
+              if (unchecked.length > 0 && newId !== activeStoreId) {
+                setPendingStore(newId);
+              } else {
+                setActiveStoreId(newId);
+              }
+            }}>
+            <SelectTrigger className="h-9 rounded-xl text-sm" onMouseDown={e => e.preventDefault()}>
               <Store size={15} className="mr-1.5 text-muted-foreground" />
               <SelectValue placeholder={t('selectStore')} />
             </SelectTrigger>
@@ -744,6 +755,25 @@ export default function ShoppingListPage() {
       <div className="px-4 pb-24">
         {/* Loyalty Card Quick Button */}
         <LoyaltyCardQuickButton storeId={activeStoreId} />
+
+        {/* Parked items import banner */}
+        {activeStoreId && parked[activeStoreId]?.length > 0 && (
+          <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-800 mb-3">
+            <span className="text-sm flex-1 text-amber-800 dark:text-amber-300">
+              📦 {parked[activeStoreId].length} εκκρεμή από προηγούμενη επίσκεψη
+            </span>
+            <Button size="sm" variant="outline" className="h-7 text-xs rounded-lg shrink-0"
+              onClick={() => {
+                parked[activeStoreId].forEach(i => addItem(i.productId, i.quantity, activeStoreId));
+                clearPark(activeStoreId);
+              }}>
+              Import
+            </Button>
+            <button onClick={() => clearPark(activeStoreId)} className="text-muted-foreground hover:text-destructive">
+              <X size={14} />
+            </button>
+          </div>
+        )}
 
         {/* Quick Add Section */}
         {frequentProducts.length > 0 && (
@@ -895,7 +925,7 @@ export default function ShoppingListPage() {
                 </span>
                 <div>
                   <p className="text-sm font-medium text-foreground">{lang === 'el' ? barcodeResult.product.name : (barcodeResult.product.nameEn || barcodeResult.product.name)}</p>
-                  <p className="text-xs text-muted-foreground">{barcodeResult.barcode}</p>
+                  <p className="text-xs text-muted-foreground font-mono break-all">{barcodeResult.barcode}</p>
                 </div>
               </div>
               <Button className="w-full rounded-xl" onClick={handleBarcodeAddToList}>
@@ -911,7 +941,7 @@ export default function ShoppingListPage() {
                 <div>
                   <p className="text-sm font-medium text-foreground">{barcodeResult.offData.name}</p>
                   {barcodeResult.offData.brand && <p className="text-xs text-muted-foreground">{barcodeResult.offData.brand}</p>}
-                  <p className="text-[10px] text-muted-foreground font-mono">{barcodeResult.barcode}</p>
+                  <p className="text-[10px] text-muted-foreground font-mono break-all">{barcodeResult.barcode}</p>
                 </div>
               </div>
               <p className="text-xs text-primary text-center">{t('foundOnOFF')}</p>
@@ -922,7 +952,7 @@ export default function ShoppingListPage() {
           ) : (
             <div className="space-y-3 text-center">
               <p className="text-sm text-muted-foreground">{t('barcodeNotFound')}</p>
-              <p className="text-xs text-muted-foreground font-mono">{barcodeResult?.barcode}</p>
+              <p className="text-xs text-muted-foreground font-mono break-all">{barcodeResult?.barcode}</p>
               <Button className="w-full rounded-xl" onClick={handleBarcodeAddToCatalog}>
                 <Plus size={16} className="mr-1.5" /> {t('addToCatalog')}
               </Button>
@@ -989,7 +1019,7 @@ export default function ShoppingListPage() {
             </div>
             {budgetScope === 'store' && (
               <Select value={budgetStoreId} onValueChange={setBudgetStoreId}>
-                <SelectTrigger className="h-9 rounded-xl text-sm">
+                <SelectTrigger className="h-9 rounded-xl text-sm" onMouseDown={e => e.preventDefault()}>
                   <Store size={14} className="mr-1.5 text-muted-foreground" />
                   <SelectValue placeholder={t('selectStore')} />
                 </SelectTrigger>
@@ -1120,14 +1150,24 @@ export default function ShoppingListPage() {
             <DialogTitle className="text-base">{t('noStoreSelected')}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">{t('noStorePrompt')}</p>
-          <div className="space-y-2">
-            <Button className="w-full rounded-xl" variant="outline" onClick={() => { setStoreCheckOpen(false); }}>
-              {t('selectStoreOption')}
-            </Button>
-            <Button className="w-full rounded-xl" onClick={() => { setStoreCheckOpen(false); doCompletePurchase(); }}>
-              {t('continueWithout')}
-            </Button>
-          </div>
+          <Select
+            onValueChange={val => {
+              setStoreCheckOpen(false);
+              if (val !== '__none__') setActiveStoreId(val);
+              doCompletePurchase();
+            }}
+          >
+            <SelectTrigger className="w-full h-10 rounded-xl text-sm">
+              <Store size={15} className="mr-1.5 text-muted-foreground" />
+              <SelectValue placeholder={t('selectStoreOption')} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">{t('continueWithout')}</SelectItem>
+              {stores.map(s => (
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </DialogContent>
       </Dialog>
 
@@ -1177,6 +1217,36 @@ export default function ShoppingListPage() {
           <img src={fullImageSrc} alt="" className="max-w-full max-h-full rounded-2xl object-contain" />
         </div>
       )}
+
+        {/* Park items dialog */}
+        <Dialog open={pendingStore !== null} onOpenChange={() => setPendingStore(null)}>
+          <DialogContent className="max-w-xs mx-auto rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-base">Αλλαγή καταστήματος</DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground">
+              Υπάρχουν {rawItems.filter(i => !i.checked).length} αντικείμενα στη λίστα. Τι να γίνουν;
+            </p>
+            <div className="space-y-2">
+              <Button className="w-full rounded-xl" onClick={() => {
+                if (activeStoreId) park(activeStoreId, rawItems.filter(i => !i.checked));
+                setActiveStoreId(pendingStore);
+                setPendingStore(null);
+              }}>
+                Αποθήκευση ως εκκρεμή
+              </Button>
+              <Button variant="outline" className="w-full rounded-xl" onClick={() => {
+                setActiveStoreId(pendingStore);
+                setPendingStore(null);
+              }}>
+                Διατήρηση στη λίστα
+              </Button>
+              <Button variant="ghost" className="w-full rounded-xl text-muted-foreground" onClick={() => setPendingStore(null)}>
+                Ακύρωση
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
     </div>
   );
 }
@@ -1274,4 +1344,4 @@ function InlineQuantityInput({ value, onChange, unit }: { value: number; onChang
       {formatQty(value, unit)}
     </button>
   );
-}
+}}

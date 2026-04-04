@@ -441,3 +441,29 @@ export function getDefaultProducts() {
 export function getDefaultStores() {
   return DEFAULT_STORES.map(s => ({ ...s, id: uid() }));
 }
+
+export function useParkedItems() {
+  const [parked, setParked] = useLocalStorage<Record<string, ShoppingItem[]>>('Pson-parked', {});
+
+  const park = useCallback((storeId: string, items: ShoppingItem[]) => {
+    if (!items.length) return;
+    setParked(prev => ({ ...prev, [storeId]: items }));
+  }, [setParked]);
+
+  const clearPark = useCallback((storeId: string) => {
+    setParked(prev => { const n = { ...prev }; delete n[storeId]; return n; });
+  }, [setParked]);
+
+  const removeProduct = useCallback((productId: string) => {
+    setParked(prev => {
+      const n = { ...prev };
+      Object.keys(n).forEach(k => {
+        n[k] = n[k].filter(i => i.productId !== productId);
+        if (!n[k].length) delete n[k];
+      });
+      return n;
+    });
+  }, [setParked]);
+
+  return { parked, park, clearPark, removeProduct };
+}

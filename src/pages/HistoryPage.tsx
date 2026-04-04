@@ -124,7 +124,7 @@ export default function HistoryPage() {
       {/* Filters */}
       <div className="flex gap-2 mb-4">
         <Select value={filterStore || '__all__'} onValueChange={v => setFilterStore(v === '__all__' ? null : v)}>
-          <SelectTrigger className="h-9 rounded-xl text-xs flex-1">
+          <SelectTrigger className="h-9 rounded-xl text-xs flex-1" onMouseDown={e => e.preventDefault()}>
             <Store size={14} className="mr-1 text-muted-foreground" />
             <SelectValue />
           </SelectTrigger>
@@ -134,7 +134,7 @@ export default function HistoryPage() {
           </SelectContent>
         </Select>
         <Select value={filterMonth || '__all__'} onValueChange={v => setFilterMonth(v === '__all__' ? null : v)}>
-          <SelectTrigger className="h-9 rounded-xl text-xs flex-1">
+          <SelectTrigger className="h-9 rounded-xl text-xs flex-1" onMouseDown={e => e.preventDefault()}>
             <Calendar size={14} className="mr-1 text-muted-foreground" />
             <SelectValue />
           </SelectTrigger>
