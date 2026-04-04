@@ -421,6 +421,7 @@ export default function ShoppingListPage() {
     await navigator.clipboard.writeText(text);
     toast({ title: t('copied') });
   }
+  };
 
   const handleImportList = () => {
     const lines = importText.split('\n').map(l => l.trim()).filter(l => l.startsWith('- '));
@@ -1344,4 +1345,4 @@ function InlineQuantityInput({ value, onChange, unit }: { value: number; onChang
       {formatQty(value, unit)}
     </button>
   );
-}}
+}
