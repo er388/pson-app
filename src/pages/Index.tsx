@@ -19,6 +19,7 @@ import { showUndo } from '@/components/UndoSnackbar';
 import { lookupBarcode } from '@/lib/openFoodFacts';
 import { LoyaltyCardQuickButton } from '@/components/LoyaltyCardManager';
 import { cn, matchesSearch } from '@/lib/utils';
+import { useBackStack } from '@/lib/useBackStack';
 
 type SortMode = 'category' | 'store' | 'added';
 
@@ -77,6 +78,17 @@ export default function ShoppingListPage() {
   const [storeCheckOpen, setStoreCheckOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importText, setImportText] = useState('');
+
+  useBackStack(showSaveTemplate, () => setShowSaveTemplate(false));
+  useBackStack(showLoadTemplate, () => setShowLoadTemplate(false));
+  useBackStack(budgetModalOpen, () => setBudgetModalOpen(false));
+  useBackStack(importDialogOpen, () => setImportDialogOpen(false));
+  useBackStack(storeCheckOpen, () => setStoreCheckOpen(false));
+  useBackStack(!!barcodeResult, () => setBarcodeResult(null));
+  useBackStack(!!altSwapItem, () => setAltSwapItem(null));
+  useBackStack(!!duplicateInfo, () => setDuplicateInfo(null));
+  useBackStack(showProductForm, () => { setShowProductForm(false); setPrefillBarcode(''); setPrefillOffData(null); });
+  useBackStack(pendingStore !== null, () => setPendingStore(null));
 
   // Smart uncheck setting
   const [smartUncheck, setSmartUncheck] = useState(() => {
@@ -685,7 +697,7 @@ export default function ShoppingListPage() {
                 setActiveStoreId(newId);
               }
             }}>
-            <SelectTrigger className="h-9 rounded-xl text-sm" onMouseDown={e => e.preventDefault()}>
+            <SelectTrigger className="h-9 rounded-xl text-sm" >
               <Store size={15} className="mr-1.5 text-muted-foreground" />
               <SelectValue placeholder={t('selectStore')} />
             </SelectTrigger>
@@ -1020,7 +1032,7 @@ export default function ShoppingListPage() {
             </div>
             {budgetScope === 'store' && (
               <Select value={budgetStoreId} onValueChange={setBudgetStoreId}>
-                <SelectTrigger className="h-9 rounded-xl text-sm" onMouseDown={e => e.preventDefault()}>
+                <SelectTrigger className="h-9 rounded-xl text-sm" >
                   <Store size={14} className="mr-1.5 text-muted-foreground" />
                   <SelectValue placeholder={t('selectStore')} />
                 </SelectTrigger>

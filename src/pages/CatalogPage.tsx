@@ -105,7 +105,7 @@ export default function CatalogPage() {
             <ScanLine size={16} className="text-muted-foreground" />
           </button>
         </div>
-        <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
+        <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar" data-no-swipe>
           <button
             onClick={() => setFilterCat('all')}
             className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${filterCat === 'all' ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'}`}

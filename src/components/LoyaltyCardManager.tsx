@@ -16,6 +16,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable, arrayMove } 
 import { CSS } from '@dnd-kit/utilities';
 import { GripVertical, ChevronDown } from 'lucide-react';
 import { backStack } from '@/lib/backStack';
+import { useBackStack } from '@/lib/useBackStack';
 
 type BarcodeFormat = 'EAN13' | 'CODE128' | 'QR' | 'EAN8' | 'UPC';
 
@@ -88,6 +89,8 @@ export default function LoyaltyCardManager() {
   const [cardStoreId, setCardStoreId] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [cardFormat, setCardFormat] = useState<BarcodeFormat>('CODE128');
+
+  useBackStack(addOpen, () => setAddOpen(false));
 
   const sensors = useSensors(
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
@@ -185,7 +188,7 @@ export default function LoyaltyCardManager() {
             <div>
               <label className="text-xs font-medium text-foreground mb-1 block">{t('store')}</label>
               <Select value={cardStoreId || '__none__'} onValueChange={v => setCardStoreId(v === '__none__' ? '' : v)}>
-                <SelectTrigger className="h-9 rounded-xl text-sm" onMouseDown={e => e.preventDefault()}>
+                <SelectTrigger className="h-9 rounded-xl text-sm" >
                   <Store size={14} className="mr-1.5 text-muted-foreground" />
                   <SelectValue />
                 </SelectTrigger>

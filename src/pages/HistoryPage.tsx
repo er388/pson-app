@@ -20,6 +20,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReceiptScanner from '@/components/ReceiptScanner';
+import { useBackStack } from '@/lib/useBackStack';
 
 export default function HistoryPage() {
   const { t, lang } = useI18n();
@@ -37,6 +38,12 @@ export default function HistoryPage() {
   const [saveTemplateFrom, setSaveTemplateFrom] = useState<CompletedPurchase | null>(null);
   const [receiptScannerOpen, setReceiptScannerOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<CompletedPurchase | null>(null);
+
+  useBackStack(!!detailPurchase, () => setDetailPurchase(null));
+  useBackStack(!!reloadPurchase, () => setReloadPurchase(null));
+  useBackStack(!!saveTemplateFrom, () => setSaveTemplateFrom(null));
+  useBackStack(!!deleteTarget, () => setDeleteTarget(null));
+  useBackStack(receiptScannerOpen, () => setReceiptScannerOpen(false));
 
   const getProductName = (pid: string) => {
     const p = products.find(pr => pr.id === pid);
@@ -124,7 +131,7 @@ export default function HistoryPage() {
       {/* Filters */}
       <div className="flex gap-2 mb-4">
         <Select value={filterStore || '__all__'} onValueChange={v => setFilterStore(v === '__all__' ? null : v)}>
-          <SelectTrigger className="h-9 rounded-xl text-xs flex-1" onMouseDown={e => e.preventDefault()}>
+          <SelectTrigger className="h-9 rounded-xl text-xs flex-1" >
             <Store size={14} className="mr-1 text-muted-foreground" />
             <SelectValue />
           </SelectTrigger>
@@ -134,7 +141,7 @@ export default function HistoryPage() {
           </SelectContent>
         </Select>
         <Select value={filterMonth || '__all__'} onValueChange={v => setFilterMonth(v === '__all__' ? null : v)}>
-          <SelectTrigger className="h-9 rounded-xl text-xs flex-1" onMouseDown={e => e.preventDefault()}>
+          <SelectTrigger className="h-9 rounded-xl text-xs flex-1" >
             <Calendar size={14} className="mr-1 text-muted-foreground" />
             <SelectValue />
           </SelectTrigger>

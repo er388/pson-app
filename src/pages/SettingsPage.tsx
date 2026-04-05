@@ -18,6 +18,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { GripVertical } from 'lucide-react';
 import { Package } from 'lucide-react';
 import CatalogModal from '@/components/CatalogModal';
+import { useBackStack } from '@/lib/useBackStack';
 
 const THEME_OPTIONS: { value: ThemeMode; emoji: string }[] = [
   { value: 'system', emoji: '⚙️' },
@@ -59,6 +60,10 @@ export default function SettingsPage() {
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [cloudOpen, setCloudOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+
+  useBackStack(helpOpen, () => setHelpOpen(false));
+  useBackStack(catalogModalOpen, () => setCatalogModalOpen(false));
+
   const sensors = useSensors(
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -114,7 +119,7 @@ export default function SettingsPage() {
             <Palette size={20} className="text-primary" />
             <p className="text-sm font-medium text-foreground flex-1">{t('themeMode')}</p>
             <Select value={theme} onValueChange={(val) => setTheme(val as ThemeMode)}>
-              <SelectTrigger className="w-44 h-9 rounded-xl text-xs" onMouseDown={e => e.preventDefault()}>
+              <SelectTrigger className="w-44 h-9 rounded-xl text-xs" >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -150,7 +155,7 @@ export default function SettingsPage() {
               value={String(historyLimit)}
               onValueChange={v => setHistoryLimit(Number(v))}
             >
-              <SelectTrigger className="w-24 h-9 rounded-xl text-xs" onMouseDown={e => e.preventDefault()}>
+              <SelectTrigger className="w-24 h-9 rounded-xl text-xs" >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -180,7 +185,7 @@ export default function SettingsPage() {
                 }
               }}
             >
-              <SelectTrigger className="w-44 h-9 rounded-xl text-xs" onMouseDown={e => e.preventDefault()}>
+              <SelectTrigger className="w-44 h-9 rounded-xl text-xs" >
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -86,6 +86,7 @@ function RouteTracker({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   useEffect(() => {
     localStorage.setItem('Pson-last-page', location.pathname);
+    (document.activeElement as HTMLElement)?.blur();
   }, [location.pathname]);
   return <>{children}</>;
 }

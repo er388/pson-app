@@ -1,7 +1,9 @@
+/* noinspection CssUnknownAt */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* noinspection CssUnknownAt */
 @layer base {
   :root {
     --background: 80 25% 97%;
@@ -183,11 +185,16 @@
 @layer base {
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
   }
   body {
     @apply bg-background text-foreground;
-    -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
+  }
+  button, a, [role="button"] {
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
   }
 }
 

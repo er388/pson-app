@@ -152,7 +152,7 @@ export default function StatsPage() {
       </div>
 
       {/* Store filter - second row */}
-      <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar items-center">
+      <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar items-center" data-no-swipe>
         <Store size={14} className="text-muted-foreground shrink-0" />
         <button
           onClick={() => setFilterStore(null)}
