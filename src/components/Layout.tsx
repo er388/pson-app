@@ -37,8 +37,28 @@ export default function Layout({ children }: { children: ReactNode }) {
   }, []);
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
-    if (e.target instanceof HTMLElement && e.target.closest('[data-no-swipe]')) {
+    if (!touchStart.current) return;
+    const el = e.target as HTMLElement;
+
+    // data-no-swipe ρητά
+    if (el.closest('[data-no-swipe]')) {
       touchStart.current = null;
+      return;
+    }
+
+    // Αν κινείται οριζόντια, έλεγξε αν περνά από scrollable container
+    const dx = Math.abs(e.touches[0].clientX - touchStart.current.x);
+    const dy = Math.abs(e.touches[0].clientY - touchStart.current.y);
+    if (dx > dy) {
+      let node: HTMLElement | null = el;
+      while (node && node !== e.currentTarget) {
+        const overflow = window.getComputedStyle(node).overflowX;
+        if ((overflow === 'auto' || overflow === 'scroll') && node.scrollWidth > node.clientWidth) {
+          touchStart.current = null;
+          return;
+        }
+        node = node.parentElement;
+      }
     }
   }, []);
 
