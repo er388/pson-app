@@ -36,7 +36,10 @@ export default function AddToListDialog({ open, onClose, products, existingProdu
   }, [open, onClose]);
 
   useEffect(() => {
-    if (open) setSearch(initialSearch || '');
+    if (open) {
+      setSearch(initialSearch || '');
+      setFilterCat('all');
+    }
   }, [open, initialSearch]);
 
   const filtered = useMemo(() => {

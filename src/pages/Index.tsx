@@ -9,6 +9,7 @@ import AddToListDialog from '@/components/AddToListDialog';
 import DuplicateDialog from '@/components/DuplicateDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Progress } from '@/components/ui/progress';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from '@/hooks/use-toast';
@@ -19,9 +20,10 @@ import { showUndo } from '@/components/UndoSnackbar';
 import { lookupBarcode } from '@/lib/openFoodFacts';
 import { LoyaltyCardQuickButton } from '@/components/LoyaltyCardManager';
 import { cn, matchesSearch } from '@/lib/utils';
+import { useDrag } from '@use-gesture/react';
 import { useBackStack } from '@/lib/useBackStack';
 
-type SortMode = 'category' | 'store' | 'added';
+type SortMode = 'category' | 'added';
 
 function getStep(unit?: string): number {
   if (unit === 'kg' || unit === 'lt') return 0.1;
@@ -55,7 +57,7 @@ export default function ShoppingListPage() {
   const { allCategoryKeys, customCategories } = useCustomCategories();
   const { budget, setBudget, clearBudget } = useBudget();
   const { parked, park, clearPark, removeProduct: removeFromParked } = useParkedItems();
-  const [pendingStore, setPendingStore] = useState<string | null>(null);
+  const [pendingStore, setPendingStore] = useState<false | string | null>(false);
   const [showAdd, setShowAdd] = useState(false);
   const [search, setSearch] = useState('');
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
@@ -78,6 +80,9 @@ export default function ShoppingListPage() {
   const [storeCheckOpen, setStoreCheckOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importText, setImportText] = useState('');
+  const [prefillName, setPrefillName] = useState('');
+  const [clearListOpen, setClearListOpen] = useState(false);
+  const [swipeDeleteId, setSwipeDeleteId] = useState<string | null>(null);
 
   useBackStack(showSaveTemplate, () => setShowSaveTemplate(false));
   useBackStack(showLoadTemplate, () => setShowLoadTemplate(false));
@@ -88,7 +93,9 @@ export default function ShoppingListPage() {
   useBackStack(!!altSwapItem, () => setAltSwapItem(null));
   useBackStack(!!duplicateInfo, () => setDuplicateInfo(null));
   useBackStack(showProductForm, () => { setShowProductForm(false); setPrefillBarcode(''); setPrefillOffData(null); });
-  useBackStack(pendingStore !== null, () => setPendingStore(null));
+  useBackStack(pendingStore !== false, () => setPendingStore(false));
+  useBackStack(clearListOpen, () => setClearListOpen(false));
+  useBackStack(!!swipeDeleteId, () => setSwipeDeleteId(null));
 
   // Smart uncheck setting
   const [smartUncheck, setSmartUncheck] = useState(() => {
@@ -97,7 +104,10 @@ export default function ShoppingListPage() {
 
   // Sort mode with persistence
   const [sortMode, setSortMode] = useState<SortMode>(() => {
-    try { return (localStorage.getItem('Pson-sort-mode') as SortMode) || 'category'; } catch { return 'category'; }
+    try {
+      const saved = localStorage.getItem('Pson-sort-mode') as SortMode;
+      return (saved === 'category' || saved === 'added') ? saved : 'category';
+    } catch { return 'category'; }
   });
   const handleSortChange = (mode: SortMode) => {
     setSortMode(mode);
@@ -146,13 +156,6 @@ export default function ShoppingListPage() {
           if (!a.checked && b.checked) return -1;
           return 0;
         }));
-      });
-    } else {
-      filteredItems.forEach(item => {
-        const key = item.storeId || '__none__';
-        const arr = map.get(key) || [];
-        arr.push(item);
-        map.set(key, arr);
       });
     }
     return map;
@@ -497,8 +500,12 @@ export default function ShoppingListPage() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: isChecked ? 0.6 : 1, y: 0 }}
         exit={{ opacity: 0, x: -100 }}
-        className={`flex items-center gap-2 p-2.5 rounded-xl border shadow-sm ${isChecked ? 'bg-muted/50 border-border/50' : 'bg-card border-border'}`}
       >
+      <SwipeableItem
+        onSwipeLeft={() => setSwipeDeleteId(item.id)}
+        onSwipeRight={() => handleCheck(item.id)}
+      >
+        <div className={`flex items-center gap-2 p-2.5 rounded-xl border shadow-sm ${isChecked ? 'bg-muted/50 border-border/50' : 'bg-card border-border'}`}>
         <button
           onClick={() => handleCheck(item.id)}
           className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center transition-colors min-w-[28px] min-h-[28px]"
@@ -575,6 +582,8 @@ export default function ShoppingListPage() {
           </button>
           <span className="text-[9px] text-muted-foreground w-6 text-center">{unit}</span>
         </div>
+        </div>
+      </SwipeableItem>
       </motion.div>
     );
   };
@@ -594,42 +603,6 @@ export default function ShoppingListPage() {
           <span className="text-sm">{emoji}</span>
           <span className="text-sm font-semibold text-foreground flex-1 text-left">{label}</span>
           <span className="text-xs text-muted-foreground">{uncheckedCount}/{sectionItems.length}</span>
-          {collapsed ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronUp size={16} className="text-muted-foreground" />}
-        </button>
-        <AnimatePresence>
-          {!collapsed && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="space-y-1.5 overflow-hidden"
-            >
-              {sectionItems.map(item => renderItem(item))}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    );
-  };
-
-  const renderStoreSection = (storeKey: string, sectionItems: typeof items[0][]) => {
-    const collapsed = collapsedSections.has(storeKey);
-    const storeId = storeKey === '__none__' ? null : storeKey;
-    const storeName = storeId ? stores.find(s => s.id === storeId)?.name || t('noStore') : t('noStore');
-    const storeTotal = getStoreTotal(storeId);
-
-    return (
-      <div key={storeKey} className="mb-4">
-        <button
-          onClick={() => toggleCollapse(storeKey)}
-          className="w-full flex items-center gap-2 p-2.5 rounded-xl bg-secondary/50 mb-2"
-        >
-          <Store size={16} className="text-muted-foreground shrink-0" />
-          <span className="text-sm font-semibold text-foreground flex-1 text-left">{storeName}</span>
-          <span className="text-xs text-muted-foreground">{sectionItems.length} {t('itemsCount')}</span>
-          {storeTotal > 0 && (
-            <span className="text-xs font-medium text-primary">{formatPrice(storeTotal)}</span>
-          )}
           {collapsed ? <ChevronDown size={16} className="text-muted-foreground" /> : <ChevronUp size={16} className="text-muted-foreground" />}
         </button>
         <AnimatePresence>
@@ -689,14 +662,15 @@ export default function ShoppingListPage() {
 
         <div className="flex gap-2 mb-3">
           <Select value={activeStoreId || 'none'} onValueChange={v => {
-              const newId = v === 'none' ? null : v;
-              const unchecked = rawItems.filter(i => !i.checked);
-              if (unchecked.length > 0 && newId !== activeStoreId) {
-                setPendingStore(newId);
-              } else {
-                setActiveStoreId(newId);
-              }
-            }}>
+            const newId = v === 'none' ? null : v;
+            if (newId === activeStoreId) return;
+            const unchecked = rawItems.filter(i => !i.checked);
+            if (unchecked.length > 0) {
+              setPendingStore(newId);
+            } else {
+              setActiveStoreId(newId);
+            }
+          }}>
             <SelectTrigger className="h-9 rounded-xl text-sm" >
               <Store size={15} className="mr-1.5 text-muted-foreground" />
               <SelectValue placeholder={t('selectStore')} />
@@ -743,7 +717,7 @@ export default function ShoppingListPage() {
         {/* Sort mode */}
         {totalCount > 0 && (
           <div className="flex gap-1 mb-2">
-            {(['category', 'store', 'added'] as SortMode[]).map(mode => (
+            {(['category', 'added'] as SortMode[]).map(mode => (
               <button
                 key={mode}
                 onClick={() => handleSortChange(mode)}
@@ -751,7 +725,7 @@ export default function ShoppingListPage() {
                   sortMode === mode ? 'bg-primary text-primary-foreground' : 'bg-secondary text-secondary-foreground'
                 }`}
               >
-                {t(mode === 'category' ? 'sortByCategory' : mode === 'store' ? 'sortByStore' : 'sortByAdded')}
+                {t(mode === 'category' ? 'sortByCategory' : 'sortByAdded')}
               </button>
             ))}
           </div>
@@ -777,10 +751,22 @@ export default function ShoppingListPage() {
             </span>
             <Button size="sm" variant="outline" className="h-7 text-xs rounded-lg shrink-0"
               onClick={() => {
-                parked[activeStoreId].forEach(i => addItem(i.productId, i.quantity, activeStoreId));
+                const toImport = parked[activeStoreId];
+                let added = 0, updated = 0;
+                toImport.forEach(i => {
+                  const existing = rawItems.find(r => r.productId === i.productId);
+                  if (existing) {
+                    updateQuantity(existing.id, Math.round((existing.quantity + i.quantity) * 100) / 100);
+                    updated++;
+                  } else {
+                    addItem(i.productId, i.quantity, activeStoreId);
+                    added++;
+                  }
+                });
                 clearPark(activeStoreId);
+                toast({ title: `Εισαγωγή`, description: `${added} νέα${updated > 0 ? `, ${updated} ενημερώθηκε` : ''}` });
               }}>
-              Import
+              Εισαγωγή
             </Button>
             <button onClick={() => clearPark(activeStoreId)} className="text-muted-foreground hover:text-destructive">
               <X size={14} />
@@ -833,14 +819,62 @@ export default function ShoppingListPage() {
           </Collapsible>
         )}
 
-        {checkedCount > 0 && (
-          <div className="flex items-center justify-between mb-3">
-            <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive" onClick={clearChecked}>
-              <Trash2 size={13} className="mr-1" /> {t('clearChecked')}
-            </Button>
-            <Button size="sm" className="h-8 text-xs rounded-xl" onClick={handleCompletePurchase}>
-              <CheckCircle2 size={14} className="mr-1" /> {t('completePurchase')}
-            </Button>
+        {totalCount > 0 && (
+          <div className="mb-3 space-y-1.5">
+            {/* Row 1: select all + clear list */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const allChecked = rawItems.every(i => i.checked);
+                  setAllItems(rawItems.map(i => ({
+                    ...i,
+                    checked: !allChecked,
+                    checkedAt: !allChecked ? (i.checkedAt || new Date().toISOString()) : undefined,
+                  })));
+                }}
+                className={`w-6 h-6 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors ${
+                  rawItems.every(i => i.checked)
+                    ? 'bg-primary border-primary'
+                    : rawItems.some(i => i.checked)
+                    ? 'border-primary bg-primary/20'
+                    : 'border-muted-foreground/30'
+                }`}
+              >
+                {rawItems.every(i => i.checked) && (
+                  <svg width="10" height="10" viewBox="0 0 12 12" className="text-primary-foreground">
+                    <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
+                  </svg>
+                )}
+                {!rawItems.every(i => i.checked) && rawItems.some(i => i.checked) && (
+                  <div className="w-2.5 h-0.5 bg-primary rounded-full" />
+                )}
+              </button>
+              <span className="text-xs text-muted-foreground flex-1">
+                {checkedCount > 0 ? `${checkedCount} επιλεγμένα` : 'Επιλογή όλων'}
+              </span>
+              <button
+                onClick={() => setClearListOpen(true)}
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-muted-foreground/60"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+            {/* Row 2: actions — only when items checked */}
+            {checkedCount > 0 && (
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive flex-1"
+                  onClick={() => {
+                    const snapshot = [...rawItems];
+                    clearChecked();
+                    showUndo('Διαγράφηκαν επιλεγμένα', () => setAllItems(snapshot));
+                  }}>
+                  <Trash2 size={13} className="mr-1" /> Επιλεγμένων
+                </Button>
+                <Button size="sm" className="h-8 text-xs rounded-xl flex-1" onClick={handleCompletePurchase}>
+                  <CheckCircle2 size={14} className="mr-1" /> {t('completePurchase')}
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -848,10 +882,6 @@ export default function ShoppingListPage() {
         {sortMode === 'category' && groupedItems ? (
           Array.from(groupedItems.entries()).map(([key, sectionItems]) =>
             renderCategorySection(key, sectionItems)
-          )
-        ) : sortMode === 'store' && groupedItems ? (
-          Array.from(groupedItems.entries()).map(([key, sectionItems]) =>
-            renderStoreSection(key, sectionItems)
           )
         ) : (
           <div className="space-y-1.5">
@@ -861,21 +891,29 @@ export default function ShoppingListPage() {
           </div>
         )}
 
-        {search && filteredItems.length === 0 && totalCount > 0 && (
-          <div className="text-center py-12">
-            <p className="text-sm text-muted-foreground mb-3">
-              {lang === 'el' ? `Δεν βρέθηκε "${search}"` : `No results for "${search}"`}
-            </p>
-            <Button
-              variant="outline"
-              className="rounded-xl"
-              onClick={() => setShowAdd(true)}
-            >
-              <Plus size={16} className="mr-1.5" />
-              {lang === 'el' ? 'Προσθήκη στη λίστα' : 'Add to list'}
-            </Button>
-          </div>
-        )}
+        {search && filteredItems.length === 0 && totalCount > 0 && (() => {
+          const inCatalog = products.some(p =>
+            matchesSearch(p.name, search) || matchesSearch(p.nameEn || '', search)
+          );
+          return (
+            <div className="text-center py-12">
+              <p className="text-sm text-muted-foreground mb-3">
+                {lang === 'el' ? `Δεν βρέθηκε "${search}" στη λίστα` : `"${search}" not in list`}
+              </p>
+              {inCatalog ? (
+                <Button variant="outline" className="rounded-xl" onClick={() => setShowAdd(true)}>
+                  <Plus size={16} className="mr-1.5" />
+                  {lang === 'el' ? 'Προσθήκη στη λίστα' : 'Add to list'}
+                </Button>
+              ) : (
+                <Button variant="outline" className="rounded-xl" onClick={() => { setPrefillName(search); setShowProductForm(true); }}>
+                  <Plus size={16} className="mr-1.5" />
+                  {lang === 'el' ? '+ Νέο προϊόν στον κατάλογο' : '+ Add new product'}
+                </Button>
+              )}
+            </div>
+          );
+        })()}
 
         {totalCount === 0 && (
           <div className="text-center py-20">
@@ -915,6 +953,7 @@ export default function ShoppingListPage() {
         onAdd={pid => addItemWithDuplicateCheck(pid, 1, activeStoreId)}
         onRemove={pid => removeByProductId(pid)}
         onAddNew={() => setShowProductForm(true)}
+        initialSearch={search}
       />
 
       {/* Barcode Scanner */}
@@ -977,7 +1016,7 @@ export default function ShoppingListPage() {
       {/* Product form for barcode add */}
       <ProductForm
         open={showProductForm}
-        onClose={() => { setShowProductForm(false); setPrefillBarcode(''); setPrefillOffData(null); }}
+        onClose={() => { setShowProductForm(false); setPrefillBarcode(''); setPrefillOffData(null); setPrefillName(''); }}
         onSave={(data) => {
           const newP = addProduct(data);
           if (newP) {
@@ -985,7 +1024,7 @@ export default function ShoppingListPage() {
             toast({ title: t('added') });
           }
         }}
-        product={prefillBarcode ? { barcode: prefillBarcode, name: prefillOffData?.name || '', category: prefillOffData?.category || 'other' } as any : undefined}
+        product={prefillBarcode ? { barcode: prefillBarcode, name: prefillOffData?.name || '', category: prefillOffData?.category || 'other' } as any : prefillName ? { name: prefillName } as any : undefined}
         offImageUrl={prefillOffData?.imageUrl}
       />
 
@@ -1231,8 +1270,58 @@ export default function ShoppingListPage() {
         </div>
       )}
 
+        {/* Clear list confirm */}
+        <AlertDialog open={clearListOpen} onOpenChange={setClearListOpen}>
+          <AlertDialogContent className="rounded-2xl max-w-xs">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Καθαρισμός λίστας</AlertDialogTitle>
+              <AlertDialogDescription>Θέλετε να διαγράψετε όλα τα αντικείμενα;</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-xl">{t('cancel')}</AlertDialogCancel>
+              <AlertDialogAction
+                className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                const snapshot = [...rawItems];
+                clearAll();
+                setClearListOpen(false);
+                showUndo('Η λίστα καθαρίστηκε', () => setAllItems(snapshot));
+              }}
+              >
+                {t('delete')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Swipe delete confirm */}
+        <AlertDialog open={!!swipeDeleteId} onOpenChange={() => setSwipeDeleteId(null)}>
+          <AlertDialogContent className="rounded-2xl max-w-xs">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Διαγραφή αντικειμένου</AlertDialogTitle>
+              <AlertDialogDescription>
+                {swipeDeleteId ? productName(rawItems.find(i => i.id === swipeDeleteId)?.productId || '') : ''}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-xl">{t('cancel')}</AlertDialogCancel>
+              <AlertDialogAction
+                className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                onClick={() => {
+                  if (swipeDeleteId) {
+                    handleRemoveItem(swipeDeleteId);
+                    setSwipeDeleteId(null);
+                  }
+                }}
+              >
+                {t('delete')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* Park items dialog */}
-        <Dialog open={pendingStore !== null} onOpenChange={() => setPendingStore(null)}>
+        <Dialog open={pendingStore !== false} onOpenChange={() => setPendingStore(false)}>
           <DialogContent className="max-w-xs mx-auto rounded-2xl">
             <DialogHeader>
               <DialogTitle className="text-base">Αλλαγή καταστήματος</DialogTitle>
@@ -1242,24 +1331,90 @@ export default function ShoppingListPage() {
             </p>
             <div className="space-y-2">
               <Button className="w-full rounded-xl" onClick={() => {
-                if (activeStoreId) park(activeStoreId, rawItems.filter(i => !i.checked));
-                setActiveStoreId(pendingStore);
-                setPendingStore(null);
+                if (activeStoreId) {
+                  const unchecked = rawItems.filter(i => !i.checked);
+                  park(activeStoreId, unchecked);
+                  setAllItems(rawItems.filter(i => i.checked));
+                }
+                setActiveStoreId(pendingStore as string | null);
+                setPendingStore(false);
               }}>
                 Αποθήκευση ως εκκρεμή
               </Button>
               <Button variant="outline" className="w-full rounded-xl" onClick={() => {
-                setActiveStoreId(pendingStore);
-                setPendingStore(null);
+                const newId = pendingStore as string | null;
+                setAllItems(rawItems.map(i => i.checked ? i : { ...i, storeId: newId }));
+                setActiveStoreId(newId);
+                setPendingStore(false);
               }}>
-                Διατήρηση στη λίστα
+                Μεταφορά στη νέα επιλογή καταστήματος
               </Button>
-              <Button variant="ghost" className="w-full rounded-xl text-muted-foreground" onClick={() => setPendingStore(null)}>
+              <Button variant="ghost" className="w-full rounded-xl text-muted-foreground" onClick={() => setPendingStore(false)}>
                 Ακύρωση
               </Button>
             </div>
           </DialogContent>
         </Dialog>
+    </div>
+  );
+}
+
+function SwipeableItem({
+  children,
+  onSwipeLeft,
+  onSwipeRight,
+}: {
+  children: React.ReactNode;
+  onSwipeLeft: () => void;
+  onSwipeRight: () => void;
+}) {
+  const [offsetX, setOffsetX] = useState(0);
+  const [swiping, setSwiping] = useState(false);
+
+  const THRESHOLD = 60;
+
+  const bind = useDrag(
+    ({ movement: [mx], down, cancel, velocity: [vx] }) => {
+      if (down) {
+        setSwiping(true);
+        setOffsetX(Math.max(-120, Math.min(80, mx)));
+      } else {
+        setSwiping(false);
+        setOffsetX(0);
+        if (Math.abs(mx) > THRESHOLD || vx > 0.5) {
+          if (mx < 0) onSwipeLeft();
+          else onSwipeRight();
+        }
+      }
+    },
+    {
+      axis: 'x',
+      filterTaps: true,
+      pointer: { touch: true },
+    }
+  );
+
+  return (
+    <div className="relative overflow-hidden rounded-xl">
+      {/* Left hint (delete) */}
+      <div className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center rounded-r-xl bg-destructive/80 transition-opacity ${offsetX < -20 ? 'opacity-100' : 'opacity-0'}`}>
+        <Trash2 size={18} className="text-white" />
+      </div>
+      {/* Right hint (check) */}
+      <div className={`absolute inset-y-0 left-0 w-20 flex items-center justify-center rounded-l-xl bg-primary/80 transition-opacity ${offsetX > 20 ? 'opacity-100' : 'opacity-0'}`}>
+        <CheckCircle2 size={18} className="text-white" />
+      </div>
+      {/* Content */}
+      <div
+        {...bind()}
+        style={{
+          transform: `translateX(${offsetX}px)`,
+          transition: swiping ? 'none' : 'transform 0.25s ease',
+        }}
+        className="touch-pan-y"
+      >
+        {children}
+      </div>
     </div>
   );
 }

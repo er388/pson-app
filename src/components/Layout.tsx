@@ -32,7 +32,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     const el = e.target as HTMLElement;
-    if (el.closest('[data-no-swipe]')) return;
+    if (el.closest('[data-no-swipe]') || el.closest('[data-swipe-horizontal]')) return;
     touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   }, []);
 
@@ -41,7 +41,7 @@ export default function Layout({ children }: { children: ReactNode }) {
     const el = e.target as HTMLElement;
 
     // data-no-swipe ρητά
-    if (el.closest('[data-no-swipe]')) {
+    if (el.closest('[data-no-swipe]') || el.closest('[data-swipe-horizontal]')) {
       touchStart.current = null;
       return;
     }
