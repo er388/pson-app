@@ -24,6 +24,7 @@ export default function CatalogPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [swipeDeleteProduct, setSwipeDeleteProduct] = useState<Product | null>(null);
+  const [notFoundBarcode, setNotFoundBarcode] = useState<string | null>(null);
 
   const getCatLabel = useCallback((key: string) => {
     const custom = customCategories.find(c => c.id === key);
@@ -87,10 +88,16 @@ export default function CatalogPage() {
       setSearch(lang === 'el' ? found.name : (found.nameEn || found.name));
       setFilterCat('all');
     } else {
-      setEditing({ barcode } as any);
-      setFormOpen(true);
+      setNotFoundBarcode(barcode);
     }
   }, [products, lang]);
+
+  const handleAddNotFoundBarcode = useCallback(() => {
+    if (!notFoundBarcode) return;
+    setEditing({ barcode: notFoundBarcode } as any);
+    setFormOpen(true);
+    setNotFoundBarcode(null);
+  }, [notFoundBarcode]);
 
   const favCount = useMemo(() => products.filter(p => p.favorite).length, [products]);
 
@@ -213,6 +220,26 @@ export default function CatalogPage() {
               onClick={() => { if (swipeDeleteProduct) { handleDelete(swipeDeleteProduct); setSwipeDeleteProduct(null); } }}
             >
               {t('delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Barcode not found prompt */}
+      <AlertDialog open={!!notFoundBarcode} onOpenChange={() => setNotFoundBarcode(null)}>
+        <AlertDialogContent className="rounded-2xl max-w-xs">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('scanBarcode')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {lang === 'el'
+                ? `Δε βρέθηκε προϊόν με barcode ${notFoundBarcode}.`
+                : `No product found with barcode ${notFoundBarcode}.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction className="rounded-xl" onClick={handleAddNotFoundBarcode}>
+              {lang === 'el' ? 'Προσθήκη νέου' : 'Add new'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
