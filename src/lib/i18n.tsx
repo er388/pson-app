@@ -197,7 +197,7 @@ const translations = {
     themeLight: 'Φωτεινό',
     themeDark: 'Σκοτεινό',
     themeBlack: 'AMOLED',
-    themeGreen: 'Πράσινο',
+    themePson: 'Pson.io',
     themeBlue: 'Μπλε',
     themeRed: 'Κόκκινο',
     // History delete
@@ -409,7 +409,7 @@ const translations = {
     themeLight: 'Light',
     themeDark: 'Dark',
     themeBlack: 'AMOLED',
-    themeGreen: 'Green',
+    themePson: 'Pson.io',
     themeBlue: 'Blue',
     themeRed: 'Red',
     // History delete

@@ -202,19 +202,20 @@ export function usePurchaseHistory() {
   return { history, addRecord, setAllHistory };
 }
 
+const HISTORY_LIMIT = 1000;
+
 export function useCompletedPurchases() {
   const [purchases, setPurchases] = useLocalStorage<CompletedPurchase[]>('Pson-completed-purchases', []);
-  const [historyLimit, setHistoryLimit] = useLocalStorage<number>('Pson-history-limit', 1000);
 
   const addPurchase = useCallback((purchase: Omit<CompletedPurchase, 'id'>) => {
     setPurchases(prev => {
       const updated = [...prev, { ...purchase, id: uid() }];
-      if (updated.length > historyLimit) {
-        return updated.slice(updated.length - historyLimit);
+      if (updated.length > HISTORY_LIMIT) {
+        return updated.slice(updated.length - HISTORY_LIMIT);
       }
       return updated;
     });
-  }, [setPurchases, historyLimit]);
+  }, [setPurchases]);
 
   const removePurchase = useCallback((id: string) => {
     setPurchases(prev => prev.filter(p => p.id !== id));
@@ -224,7 +225,8 @@ export function useCompletedPurchases() {
     setPurchases(ps);
   }, [setPurchases]);
 
-  return { purchases, addPurchase, removePurchase, setAllPurchases, historyLimit, setHistoryLimit };
+  // Legacy compat: keep historyLimit/setHistoryLimit for any callers (no-op setter)
+  return { purchases, addPurchase, removePurchase, setAllPurchases, historyLimit: HISTORY_LIMIT, setHistoryLimit: (_: number) => {} };
 }
 
 export function useTemplates() {
@@ -372,19 +374,19 @@ export function useLoyaltyCards() {
   return { cards, addCard, removeCard, setAllCards };
 }
 
-export type ThemeMode = 'system' | 'light' | 'dark' | 'black' | 'green' | 'blue' | 'red';
+export type ThemeMode = 'system' | 'light' | 'dark' | 'black' | 'pson' | 'blue' | 'red';
 
 export function useThemeMode() {
   const [theme, setTheme] = useLocalStorage<ThemeMode>('Pson-theme', 'light');
   useEffect(() => {
     const cl = document.documentElement.classList;
-    cl.remove('dark', 'theme-black', 'theme-green', 'theme-blue', 'theme-red');
+    cl.remove('dark', 'theme-black', 'theme-pson', 'theme-blue', 'theme-red');
     if (theme === 'dark') cl.add('dark');
     else if (theme === 'system') {
       if (window.matchMedia('(prefers-color-scheme: dark)').matches) cl.add('dark');
     }
     else if (theme === 'black') { cl.add('dark'); cl.add('theme-black'); }
-    else if (theme === 'green') { cl.add('dark'); cl.add('theme-green'); }
+    else if (theme === 'pson') { cl.add('dark'); cl.add('theme-pson'); }
     else if (theme === 'blue') { cl.add('dark'); cl.add('theme-blue'); }
     else if (theme === 'red') { cl.add('dark'); cl.add('theme-red'); }
   }, [theme]);
