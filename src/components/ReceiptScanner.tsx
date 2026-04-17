@@ -77,24 +77,25 @@ function parseReceiptText(text: string, products: Product[]): ParsedReceipt {
     }
   }
 
-  // Extract items with prices
-  // Common receipt patterns: "PRODUCT NAME    1.23" or "PRODUCT NAME 1,23€"
-  const priceRegex = /(\d+[.,]\d{2})\s*€?\s*$/;
-  const totalRegex = /(?:σύνολο|total|συν(?:ολο)?|τελικ[οό]|sum)\s*:?\s*(\d+[.,]\d{2})/i;
+  // Extract items with prices — broader regex to catch more receipt formats
+  // Matches: "1.23", "1,23", "1.23€", "€1,23", "1,23 EUR", optional leading €/$
+  const priceRegex = /(?:€|EUR\s*)?\s*(\d{1,4}[.,]\d{2})\s*(?:€|EUR)?\s*$/i;
+  const totalRegex = /(?:σύνολο|συνολο|total|συν(?:ολο)?|τελικ[οό]|sum|πληρωτ[εέ]ο)\s*:?\s*(?:€)?\s*(\d{1,4}[.,]\d{2})/i;
 
   for (const line of lines) {
-    // Check for total line
     const totalMatch = line.match(totalRegex);
     if (totalMatch) {
       total = parseFloat(totalMatch[1].replace(',', '.'));
       continue;
     }
 
-    // Check for item + price
     const priceMatch = line.match(priceRegex);
     if (priceMatch) {
       const price = parseFloat(priceMatch[1].replace(',', '.'));
-      const rawName = line.replace(priceRegex, '').trim();
+      const rawName = line.replace(priceRegex, '').replace(/[*x×]?\s*\d+[.,]?\d*\s*$/, '').trim();
+
+      // Skip lines that are clearly headers/footers
+      if (/^(?:αφμ|τηλ|fax|αρ\.?\s*απ|date|ημερομηνία|cashier|ταμείο)/i.test(rawName)) continue;
 
       if (rawName.length >= 2 && price > 0 && price < 1000) {
         const matched = fuzzyMatch(rawName, products);
@@ -140,17 +141,25 @@ export default function ReceiptScanner({ open, onClose }: Props) {
     setPreviewImage(imageData);
 
     try {
-      // Lazy load Tesseract
       const { createWorker } = await import('tesseract.js');
-      const worker = await createWorker('ell+eng');
+      // Try Greek+English; fall back to English-only if Greek fails to load
+      let worker;
+      try {
+        worker = await createWorker('ell+eng');
+      } catch (e) {
+        console.warn('[Receipt] ell+eng failed, falling back to eng:', e);
+        worker = await createWorker('eng');
+      }
       const { data } = await worker.recognize(imageData);
+      console.log('[Receipt] OCR raw text:\n', data.text);
       await worker.terminate();
 
       const result = parseReceiptText(data.text, products);
+      console.log('[Receipt] Parsed:', result);
       setParsed(result);
       setParsedItems(result.items);
     } catch (err) {
-      console.error('OCR Error:', err);
+      console.error('[Receipt] OCR Error:', err);
       toast({ title: t('ocrError'), variant: 'destructive' });
     } finally {
       setProcessing(false);
