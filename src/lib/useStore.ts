@@ -202,19 +202,20 @@ export function usePurchaseHistory() {
   return { history, addRecord, setAllHistory };
 }
 
+const HISTORY_LIMIT = 1000;
+
 export function useCompletedPurchases() {
   const [purchases, setPurchases] = useLocalStorage<CompletedPurchase[]>('Pson-completed-purchases', []);
-  const [historyLimit, setHistoryLimit] = useLocalStorage<number>('Pson-history-limit', 1000);
 
   const addPurchase = useCallback((purchase: Omit<CompletedPurchase, 'id'>) => {
     setPurchases(prev => {
       const updated = [...prev, { ...purchase, id: uid() }];
-      if (updated.length > historyLimit) {
-        return updated.slice(updated.length - historyLimit);
+      if (updated.length > HISTORY_LIMIT) {
+        return updated.slice(updated.length - HISTORY_LIMIT);
       }
       return updated;
     });
-  }, [setPurchases, historyLimit]);
+  }, [setPurchases]);
 
   const removePurchase = useCallback((id: string) => {
     setPurchases(prev => prev.filter(p => p.id !== id));
@@ -224,7 +225,8 @@ export function useCompletedPurchases() {
     setPurchases(ps);
   }, [setPurchases]);
 
-  return { purchases, addPurchase, removePurchase, setAllPurchases, historyLimit, setHistoryLimit };
+  // Legacy compat: keep historyLimit/setHistoryLimit for any callers (no-op setter)
+  return { purchases, addPurchase, removePurchase, setAllPurchases, historyLimit: HISTORY_LIMIT, setHistoryLimit: (_: number) => {} };
 }
 
 export function useTemplates() {
@@ -372,23 +374,30 @@ export function useLoyaltyCards() {
   return { cards, addCard, removeCard, setAllCards };
 }
 
-export type ThemeMode = 'system' | 'light' | 'dark' | 'black' | 'green' | 'blue' | 'red';
+export type ThemeMode = 'system' | 'light' | 'dark' | 'black' | 'pson' | 'blue' | 'red';
 
 export function useThemeMode() {
-  const [theme, setTheme] = useLocalStorage<ThemeMode>('Pson-theme', 'light');
+  const [theme, setThemeRaw] = useLocalStorage<ThemeMode>('Pson-theme', 'light');
+
+  // Migrate legacy 'green' → 'pson'
+  useEffect(() => {
+    if ((theme as string) === 'green') setThemeRaw('pson');
+  }, [theme, setThemeRaw]);
+
   useEffect(() => {
     const cl = document.documentElement.classList;
-    cl.remove('dark', 'theme-black', 'theme-green', 'theme-blue', 'theme-red');
+    cl.remove('dark', 'theme-black', 'theme-pson', 'theme-blue', 'theme-red');
     if (theme === 'dark') cl.add('dark');
     else if (theme === 'system') {
       if (window.matchMedia('(prefers-color-scheme: dark)').matches) cl.add('dark');
     }
     else if (theme === 'black') { cl.add('dark'); cl.add('theme-black'); }
-    else if (theme === 'green') { cl.add('dark'); cl.add('theme-green'); }
+    else if (theme === 'pson') { cl.add('dark'); cl.add('theme-pson'); }
     else if (theme === 'blue') { cl.add('dark'); cl.add('theme-blue'); }
     else if (theme === 'red') { cl.add('dark'); cl.add('theme-red'); }
   }, [theme]);
-  return [theme, setTheme] as const;
+
+  return [theme, setThemeRaw] as const;
 }
 
 // Legacy compat
@@ -447,13 +456,22 @@ export interface CustomUnit {
   nameEn?: string;
 }
 
+export interface DefaultUnitOverride {
+  name?: string;     // override display name
+  nameEn?: string;
+  hidden?: boolean;
+}
+
 export function useProductUnits() {
   const [customUnits, setCustomUnits] = useLocalStorage<CustomUnit[]>('Pson-custom-units', []);
+  const [defaultOverrides, setDefaultOverrides] = useLocalStorage<Record<string, DefaultUnitOverride>>('Pson-default-unit-overrides', {});
 
-  const allUnits = useMemo(
-    () => [...DEFAULT_PRODUCT_UNITS, ...customUnits.map(u => u.name)],
-    [customUnits]
-  );
+  const allUnits = useMemo(() => {
+    const visibleDefaults = DEFAULT_PRODUCT_UNITS
+      .filter(u => !defaultOverrides[u]?.hidden)
+      .map(u => defaultOverrides[u]?.name || u);
+    return [...visibleDefaults, ...customUnits.map(u => u.name)];
+  }, [customUnits, defaultOverrides]);
 
   const addUnit = useCallback((name: string, nameEn?: string) => {
     const trimmed = name.trim();
@@ -463,11 +481,28 @@ export function useProductUnits() {
   }, [allUnits, setCustomUnits]);
 
   const removeUnit = useCallback((name: string) => {
-    if (DEFAULT_PRODUCT_UNITS.includes(name)) return;
+    // If it's a default, hide it. Else remove from custom.
+    if (DEFAULT_PRODUCT_UNITS.includes(name)) {
+      setDefaultOverrides(prev => ({ ...prev, [name]: { ...prev[name], hidden: true } }));
+      return;
+    }
     setCustomUnits(prev => prev.filter(u => u.name !== name));
-  }, [setCustomUnits]);
+  }, [setCustomUnits, setDefaultOverrides]);
 
-  return { allUnits, customUnits, addUnit, removeUnit };
+  const updateUnit = useCallback((originalName: string, name: string, nameEn?: string) => {
+    const newName = name.trim();
+    if (!newName) return;
+    if (DEFAULT_PRODUCT_UNITS.includes(originalName)) {
+      setDefaultOverrides(prev => ({
+        ...prev,
+        [originalName]: { name: newName, nameEn: nameEn?.trim() || undefined, hidden: prev[originalName]?.hidden },
+      }));
+    } else {
+      setCustomUnits(prev => prev.map(u => u.name === originalName ? { name: newName, nameEn: nameEn?.trim() || undefined } : u));
+    }
+  }, [setCustomUnits, setDefaultOverrides]);
+
+  return { allUnits, customUnits, defaultOverrides, addUnit, removeUnit, updateUnit };
 }
 
 export function useParkedItems() {

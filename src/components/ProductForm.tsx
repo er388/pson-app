@@ -22,15 +22,36 @@ interface Props {
   offImageUrl?: string;
 }
 
+// Auto-translate via MyMemory. Validate result is plausible (latin/greek only) to
+// avoid garbage like Chinese characters when API mis-detects the source language.
+function isPlausibleTranslation(text: string, targetLang: 'el' | 'en'): boolean {
+  if (!text || text.length > 200) return false;
+  // Reject if contains CJK (Chinese/Japanese/Korean), Cyrillic, Arabic, etc.
+  if (/[\u3400-\u9FBF\u3040-\u30FF\u0400-\u04FF\u0600-\u06FF]/.test(text)) return false;
+  if (targetLang === 'el') {
+    // For Greek target, require at least one Greek letter
+    return /[\u0370-\u03FF\u1F00-\u1FFF]/.test(text);
+  }
+  // For English target, require only latin letters & punctuation
+  return /^[\x00-\x7F\s.,'-]+$/.test(text);
+}
+
 async function translateText(text: string, from: 'el' | 'en', to: 'el' | 'en'): Promise<string | null> {
   try {
     const res = await fetch(
-      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0, 300))}&langpair=${from}|${to}`,
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0, 200))}&langpair=${from}|${to}`,
       { signal: AbortSignal.timeout(3000) }
     );
     const data = await res.json();
     if (data.responseStatus === 200 && data.responseData?.translatedText) {
-      return data.responseData.translatedText;
+      const translated = data.responseData.translatedText.trim();
+      // Reject if API returned same text (no translation happened)
+      if (translated.toLowerCase() === text.trim().toLowerCase()) return null;
+      // Reject obvious garbage (wrong script)
+      if (!isPlausibleTranslation(translated, to)) return null;
+      // Reject if MyMemory returned a "no match" placeholder
+      if (/MYMEMORY WARNING|NO QUERY SPECIFIED/i.test(translated)) return null;
+      return translated;
     }
   } catch { /* offline - silent fail */ }
   return null;
@@ -339,25 +360,27 @@ const handleNameEnBlur = useCallback(async () => {
             <div className="flex gap-3">
               <div className="flex-1 space-y-1.5">
                 <Label className="text-xs font-medium">{t('category')}</Label>
-                <Select value={category} onValueChange={v => setCategory(v)}>
-                  <SelectTrigger ><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {allCategoryKeys.map(c => (
-                      <SelectItem key={c} value={c}>{getCategoryLabel(c)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  value={category}
+                  onChange={e => setCategory(e.target.value)}
+                  className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {allCategoryKeys.map(c => (
+                    <option key={c} value={c}>{getCategoryLabel(c)}</option>
+                  ))}
+                </select>
               </div>
               <div className="w-28 space-y-1.5">
                 <Label className="text-xs font-medium">{t('unit')}</Label>
-                <Select value={unit} onValueChange={v => setUnit(v as ProductUnit)}>
-                  <SelectTrigger ><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {allUnits.map(u => (
-                      <SelectItem key={u} value={u}>{u}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  value={unit}
+                  onChange={e => setUnit(e.target.value as ProductUnit)}
+                  className="w-full h-10 px-2 rounded-md border border-input bg-background text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {allUnits.map(u => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div className="space-y-1.5">
