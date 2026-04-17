@@ -1,6 +1,6 @@
 import { ReactNode, useMemo, useCallback, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ShoppingCart, Package, Settings, BarChart3, Clock } from 'lucide-react';
+import { ShoppingCart, Settings, BarChart3, Clock } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -15,7 +15,6 @@ export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useI18n();
-  const touchStart = useRef<{ x: number; y: number } | null>(null);
   const prevIndex = useRef(0);
 
   const activeIndex = useMemo(() => {
@@ -30,53 +29,6 @@ export default function Layout({ children }: { children: ReactNode }) {
     navigate(path);
   }, [navigate]);
 
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
-    const el = e.target as HTMLElement;
-    if (el.closest('[data-no-swipe]') || el.closest('[data-swipe-horizontal]')) return;
-    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  }, []);
-
-  const onTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!touchStart.current) return;
-    const el = e.target as HTMLElement;
-
-    // data-no-swipe ρητά
-    if (el.closest('[data-no-swipe]') || el.closest('[data-swipe-horizontal]')) {
-      touchStart.current = null;
-      return;
-    }
-
-    // Αν κινείται οριζόντια, έλεγξε αν περνά από scrollable container
-    const dx = Math.abs(e.touches[0].clientX - touchStart.current.x);
-    const dy = Math.abs(e.touches[0].clientY - touchStart.current.y);
-    if (dx > dy) {
-      let node: HTMLElement | null = el;
-      while (node && node !== e.currentTarget) {
-        const overflow = window.getComputedStyle(node).overflowX;
-        if ((overflow === 'auto' || overflow === 'scroll') && node.scrollWidth > node.clientWidth) {
-          touchStart.current = null;
-          return;
-        }
-        node = node.parentElement;
-      }
-    }
-  }, []);
-
-  const onTouchEnd = useCallback((e: React.TouchEvent) => {
-    if (!touchStart.current) return;
-    const dx = e.changedTouches[0].clientX - touchStart.current.x;
-    const dy = e.changedTouches[0].clientY - touchStart.current.y;
-    touchStart.current = null;
-
-    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx) * 0.8) return;
-
-    if (dx < 0 && activeIndex < tabs.length - 1) {
-      navigate(tabs[activeIndex + 1].path);
-    } else if (dx > 0 && activeIndex > 0) {
-      navigate(tabs[activeIndex - 1].path);
-    }
-  }, [activeIndex, navigate]);
-
   return (
     <div className="flex flex-col h-[100dvh] bg-background overflow-hidden">
       <div className="flex-1 relative overflow-hidden">
@@ -89,9 +41,6 @@ export default function Layout({ children }: { children: ReactNode }) {
             exit={{ x: direction * -100 + '%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 30, mass: 0.8 }}
             className="absolute inset-0 overflow-y-auto pb-20"
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
           >
             {children}
           </motion.main>

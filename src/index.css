@@ -97,32 +97,32 @@
     --ring: 217 75% 62%;
   }
 
-  /* Green accent theme - brighter */
-  .theme-green {
-    --background: 140 15% 8%;
-    --foreground: 120 15% 92%;
+  /* Pson.io signature theme — deep violet→purple */
+  .theme-pson {
+    --background: 265 25% 7%;
+    --foreground: 270 20% 95%;
 
-    --card: 140 12% 12%;
-    --card-foreground: 120 15% 92%;
+    --card: 265 22% 11%;
+    --card-foreground: 270 20% 95%;
 
-    --popover: 140 12% 12%;
-    --popover-foreground: 120 15% 92%;
+    --popover: 265 22% 11%;
+    --popover-foreground: 270 20% 95%;
 
-    --primary: 142 72% 52%;
+    --primary: 270 85% 65%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 140 12% 17%;
-    --secondary-foreground: 120 12% 85%;
+    --secondary: 265 18% 17%;
+    --secondary-foreground: 270 15% 88%;
 
-    --muted: 140 10% 14%;
-    --muted-foreground: 120 8% 55%;
+    --muted: 265 16% 14%;
+    --muted-foreground: 270 10% 60%;
 
-    --accent: 142 72% 52%;
+    --accent: 285 90% 70%;
     --accent-foreground: 0 0% 100%;
 
-    --border: 140 10% 20%;
-    --input: 140 10% 20%;
-    --ring: 142 72% 52%;
+    --border: 265 14% 22%;
+    --input: 265 14% 22%;
+    --ring: 270 85% 65%;
   }
 
   /* Blue accent theme - brighter */
