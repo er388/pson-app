@@ -214,6 +214,17 @@ const translations = {
     startupPage: 'Αρχική σελίδα εκκίνησης',
     lastVisited: 'Τελευταία επισκεφθείσα',
     productCatalog: 'Κατάλογος Προϊόντων',
+    // Settings sections
+    sectionAppearance: 'Εμφάνιση',
+    sectionGeneral: 'Γενικά',
+    sectionData: 'Δεδομένα',
+    sectionContent: 'Περιεχόμενο',
+    sectionAbout: 'Σχετικά',
+    unitsManagement: 'Μονάδες Μέτρησης',
+    categoriesManagement: 'Κατηγορίες Προϊόντων',
+    addUnit: 'Νέα μονάδα',
+    barcodeNotFoundCatalog: 'Δε βρέθηκε προϊόν',
+    addNewProduct: 'Προσθήκη νέου',
   },
   en: {
     shoppingList: 'Shopping List',
@@ -426,6 +437,17 @@ const translations = {
     startupPage: 'Startup page',
     lastVisited: 'Last visited',
     productCatalog: 'Product Catalog',
+    // Settings sections
+    sectionAppearance: 'Appearance',
+    sectionGeneral: 'General',
+    sectionData: 'Data',
+    sectionContent: 'Content',
+    sectionAbout: 'About',
+    unitsManagement: 'Measurement Units',
+    categoriesManagement: 'Product Categories',
+    addUnit: 'New unit',
+    barcodeNotFoundCatalog: 'No product found',
+    addNewProduct: 'Add new',
   },
 } as const;
 
