@@ -19,6 +19,7 @@ import { GripVertical } from 'lucide-react';
 import { Package } from 'lucide-react';
 import CatalogModal from '@/components/CatalogModal';
 import { useBackStack } from '@/lib/useBackStack';
+import { useProductUnits } from '@/lib/useStore';
 
 const THEME_OPTIONS: { value: ThemeMode; emoji: string }[] = [
   { value: 'system', emoji: '⚙️' },
@@ -60,6 +61,10 @@ export default function SettingsPage() {
   const [templatesOpen, setTemplatesOpen] = useState(false);
   const [cloudOpen, setCloudOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const { allUnits, customUnits, addUnit, removeUnit } = useProductUnits();
+  const [newUnit, setNewUnit] = useState('');
+  const [newUnitEn, setNewUnitEn] = useState('');
+  const [unitsOpen, setUnitsOpen] = useState(false);
 
   useBackStack(helpOpen, () => setHelpOpen(false));
   useBackStack(catalogModalOpen, () => setCatalogModalOpen(false));
@@ -232,6 +237,67 @@ export default function SettingsPage() {
               <Button onClick={handleAddStore} size="sm" className="rounded-xl px-4 h-10"><Plus size={16} /></Button>
             </div>
           </>
+        )}
+      </section>
+
+      {/* Units Manager */}
+      <section className="mb-6">
+        <button
+          onClick={() => setUnitsOpen(v => !v)}
+          className="w-full flex items-center gap-1.5 mb-3"
+        >
+          <span className="text-muted-foreground text-sm">⚖️</span>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex-1 text-left">Μονάδες Μέτρησης</h2>
+          <ChevronDown size={14} className={`text-muted-foreground transition-transform ${unitsOpen ? 'rotate-180' : ''}`} />
+        </button>
+        {unitsOpen && (
+          <div className="space-y-1.5">
+            {allUnits.map(u => {
+              const custom = customUnits.find(c => c.name === u);
+              const isDefault = !custom;
+              return (
+                <div key={u} className="flex items-center gap-3 p-3 rounded-xl bg-card border border-border">
+                  <span className="flex-1 text-sm font-medium text-foreground">
+                    {u}
+                    {custom?.nameEn && <span className="text-xs text-muted-foreground ml-2">{custom.nameEn}</span>}
+                  </span>
+                  {isDefault ? (
+                    <span className="text-[10px] text-muted-foreground px-1.5 py-0.5 rounded-full bg-secondary">default</span>
+                  ) : (
+                    <button
+                      onClick={() => removeUnit(u)}
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            <div className="flex gap-2 mt-2">
+              <Input
+                value={newUnit}
+                onChange={e => setNewUnit(e.target.value)}
+                placeholder="Νέα μονάδα (π.χ. κιλό)"
+                className="rounded-xl text-sm h-9 flex-1"
+                autoComplete="off"
+                onKeyDown={e => e.key === 'Enter' && (addUnit(newUnit, newUnitEn), setNewUnit(''), setNewUnitEn(''))}
+              />
+              <Input
+                value={newUnitEn}
+                onChange={e => setNewUnitEn(e.target.value)}
+                placeholder="EN"
+                className="rounded-xl text-sm h-9 w-20"
+                autoComplete="off"
+              />
+              <Button
+                size="sm" className="rounded-xl px-3 h-9"
+                onClick={() => { addUnit(newUnit, newUnitEn); setNewUnit(''); setNewUnitEn(''); }}
+              >
+                <Plus size={16} />
+              </Button>
+            </div>
+          </div>
         )}
       </section>
 

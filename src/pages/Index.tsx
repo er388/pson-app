@@ -22,6 +22,7 @@ import { LoyaltyCardQuickButton } from '@/components/LoyaltyCardManager';
 import { cn, matchesSearch } from '@/lib/utils';
 import { useDrag } from '@use-gesture/react';
 import { useBackStack } from '@/lib/useBackStack';
+import SwipeableItem from '@/components/SwipeableItem';
 
 type SortMode = 'category' | 'added';
 
@@ -1355,66 +1356,6 @@ export default function ShoppingListPage() {
             </div>
           </DialogContent>
         </Dialog>
-    </div>
-  );
-}
-
-function SwipeableItem({
-  children,
-  onSwipeLeft,
-  onSwipeRight,
-}: {
-  children: React.ReactNode;
-  onSwipeLeft: () => void;
-  onSwipeRight: () => void;
-}) {
-  const [offsetX, setOffsetX] = useState(0);
-  const [swiping, setSwiping] = useState(false);
-
-  const THRESHOLD = 60;
-
-  const bind = useDrag(
-    ({ movement: [mx], down, cancel, velocity: [vx] }) => {
-      if (down) {
-        setSwiping(true);
-        setOffsetX(Math.max(-120, Math.min(80, mx)));
-      } else {
-        setSwiping(false);
-        setOffsetX(0);
-        if (Math.abs(mx) > THRESHOLD || vx > 0.5) {
-          if (mx < 0) onSwipeLeft();
-          else onSwipeRight();
-        }
-      }
-    },
-    {
-      axis: 'x',
-      filterTaps: true,
-      pointer: { touch: true },
-    }
-  );
-
-  return (
-    <div className="relative overflow-hidden rounded-xl">
-      {/* Left hint (delete) */}
-      <div className={`absolute inset-y-0 right-0 w-20 flex items-center justify-center rounded-r-xl bg-destructive/80 transition-opacity ${offsetX < -20 ? 'opacity-100' : 'opacity-0'}`}>
-        <Trash2 size={18} className="text-white" />
-      </div>
-      {/* Right hint (check) */}
-      <div className={`absolute inset-y-0 left-0 w-20 flex items-center justify-center rounded-l-xl bg-primary/80 transition-opacity ${offsetX > 20 ? 'opacity-100' : 'opacity-0'}`}>
-        <CheckCircle2 size={18} className="text-white" />
-      </div>
-      {/* Content */}
-      <div
-        {...bind()}
-        style={{
-          transform: `translateX(${offsetX}px)`,
-          transition: swiping ? 'none' : 'transform 0.25s ease',
-        }}
-        className="touch-pan-y"
-      >
-        {children}
-      </div>
     </div>
   );
 }

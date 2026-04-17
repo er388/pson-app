@@ -11,6 +11,8 @@ import { toast } from '@/hooks/use-toast';
 import BarcodeScanner from '@/components/BarcodeScanner';
 import { showUndo } from '@/components/UndoSnackbar';
 import { cn, matchesSearch } from '@/lib/utils';
+import SwipeableItem from '@/components/SwipeableItem';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 
 export default function CatalogPage() {
   const { t, lang } = useI18n();
@@ -21,6 +23,7 @@ export default function CatalogPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [swipeDeleteProduct, setSwipeDeleteProduct] = useState<Product | null>(null);
 
   const getCatLabel = useCallback((key: string) => {
     const custom = customCategories.find(c => c.id === key);
@@ -146,7 +149,7 @@ export default function CatalogPage() {
               <div className="space-y-1.5">
                 <AnimatePresence>
                   {prods.map(p => (
-                    <ProductCard key={p.id} product={p} lang={lang} t={t} onEdit={() => { setEditing(p); setFormOpen(true); }} onDelete={() => handleDelete(p)} onToggleFav={() => handleToggleFavorite(p)} />
+                    <ProductCard key={p.id} product={p} lang={lang} t={t} onEdit={() => { setEditing(p); setFormOpen(true); }} onDelete={() => handleDelete(p)} onToggleFav={() => handleToggleFavorite(p)} onSwipeDelete={() => setSwipeDeleteProduct(p)} />
                   ))}
                 </AnimatePresence>
               </div>
@@ -156,7 +159,7 @@ export default function CatalogPage() {
           <div className="space-y-1.5">
             <AnimatePresence>
               {filtered.map(p => (
-                <ProductCard key={p.id} product={p} lang={lang} t={t} onEdit={() => { setEditing(p); setFormOpen(true); }} onDelete={() => handleDelete(p)} onToggleFav={() => handleToggleFavorite(p)} />
+                <ProductCard key={p.id} product={p} lang={lang} t={t} onEdit={() => { setEditing(p); setFormOpen(true); }} onDelete={() => handleDelete(p)} onToggleFav={() => handleToggleFavorite(p)} onSwipeDelete={() => setSwipeDeleteProduct(p)} />
               ))}
             </AnimatePresence>
           </div>
@@ -194,15 +197,43 @@ export default function CatalogPage() {
         onClose={() => setScannerOpen(false)}
         onScan={handleBarcodeScan}
       />
+
+      <AlertDialog open={!!swipeDeleteProduct} onOpenChange={() => setSwipeDeleteProduct(null)}>
+        <AlertDialogContent className="rounded-2xl max-w-xs">
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('delete')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {swipeDeleteProduct ? (lang === 'el' ? swipeDeleteProduct.name : (swipeDeleteProduct.nameEn || swipeDeleteProduct.name)) : ''}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-xl">{t('cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="rounded-xl bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (swipeDeleteProduct) { handleDelete(swipeDeleteProduct); setSwipeDeleteProduct(null); } }}
+            >
+              {t('delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
 
-const ProductCard = memo(function ProductCard({ product, lang, t, onEdit, onDelete, onToggleFav }: { product: Product; lang: string; t: any; onEdit: () => void; onDelete: () => void; onToggleFav: () => void }) {
+const ProductCard = memo(function ProductCard({ product, lang, t, onEdit, onDelete, onToggleFav, onSwipeDelete }:
+  { product: Product; lang: string; t: any; onEdit: () => void; onDelete: () => void; onToggleFav: () => void; onSwipeDelete: () => void }
+) {
   const [showFullImage, setShowFullImage] = useState(false);
 
   return (
-    <>
+  <>
+    <SwipeableItem
+      onSwipeLeft={onSwipeDelete}
+      onSwipeRight={onToggleFav}
+      rightColor={product.favorite ? 'bg-amber-400/80' : 'bg-amber-500/80'}
+      rightIcon={<Star size={18} className="text-white" fill="white" />}
+    >
       <motion.div
         layout
         initial={{ opacity: 0, y: 10 }}
@@ -245,8 +276,8 @@ const ProductCard = memo(function ProductCard({ product, lang, t, onEdit, onDele
           </button>
         </div>
       </motion.div>
-
-      {showFullImage && product.image && (
+    </SwipeableItem>
+    {showFullImage && product.image && (
         <div
           className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-8"
           onClick={() => setShowFullImage(false)}

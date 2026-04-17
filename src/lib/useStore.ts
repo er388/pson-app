@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Product, ShoppingItem, Store, PurchaseRecord, CompletedPurchase, Category, DefaultCategory, CustomCategory, AppData, DEFAULT_CATEGORIES, DEFAULT_CATEGORY_EMOJI, DEFAULT_CATEGORY_COLORS, CATEGORY_EMOJI, CATEGORY_COLORS, ProductUnit, ListTemplate, Budget, LoyaltyCard } from './types';
+import { Product, ShoppingItem, Store, PurchaseRecord, CompletedPurchase, Category, DefaultCategory, CustomCategory, AppData, DEFAULT_CATEGORIES, DEFAULT_CATEGORY_EMOJI, DEFAULT_CATEGORY_COLORS, CATEGORY_EMOJI, CATEGORY_COLORS, ProductUnit, ListTemplate, Budget, LoyaltyCard, DEFAULT_PRODUCT_UNITS } from './types';
 
 function useLocalStorage<T>(key: string, initial: T): [T, React.Dispatch<React.SetStateAction<T>>] {
   const [value, setValue] = useState<T>(() => {
@@ -440,6 +440,34 @@ export function getDefaultProducts() {
 
 export function getDefaultStores() {
   return DEFAULT_STORES.map(s => ({ ...s, id: uid() }));
+}
+
+export interface CustomUnit {
+  name: string;
+  nameEn?: string;
+}
+
+export function useProductUnits() {
+  const [customUnits, setCustomUnits] = useLocalStorage<CustomUnit[]>('Pson-custom-units', []);
+
+  const allUnits = useMemo(
+    () => [...DEFAULT_PRODUCT_UNITS, ...customUnits.map(u => u.name)],
+    [customUnits]
+  );
+
+  const addUnit = useCallback((name: string, nameEn?: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    if (allUnits.includes(trimmed)) return;
+    setCustomUnits(prev => [...prev, { name: trimmed, nameEn: nameEn?.trim() || undefined }]);
+  }, [allUnits, setCustomUnits]);
+
+  const removeUnit = useCallback((name: string) => {
+    if (DEFAULT_PRODUCT_UNITS.includes(name)) return;
+    setCustomUnits(prev => prev.filter(u => u.name !== name));
+  }, [setCustomUnits]);
+
+  return { allUnits, customUnits, addUnit, removeUnit };
 }
 
 export function useParkedItems() {

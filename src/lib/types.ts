@@ -37,9 +37,9 @@ export interface CustomCategory {
   color: string;
 }
 
-export type ProductUnit = 'τεμ.' | 'kg' | 'gr' | 'lt' | 'ml' | 'μάτσο' | 'πακέτο' | 'κιβώτιο';
-
-export const PRODUCT_UNITS: ProductUnit[] = ['τεμ.', 'kg', 'gr', 'lt', 'ml', 'μάτσο', 'πακέτο', 'κιβώτιο'];
+export type ProductUnit = string;
+export const DEFAULT_PRODUCT_UNITS: string[] = ['τεμ.', 'kg', 'gr', 'lt', 'ml', 'μάτσο', 'πακέτο', 'κιβώτιο'];
+export const PRODUCT_UNITS = DEFAULT_PRODUCT_UNITS;
 
 export interface Product {
   id: string;

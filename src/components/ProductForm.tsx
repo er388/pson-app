@@ -11,6 +11,8 @@ import { useCustomCategories, useProducts } from '@/lib/useStore';
 import BarcodeScanner from './BarcodeScanner';
 import { toast } from '@/hooks/use-toast';
 import { cn, matchesSearch } from '@/lib/utils';
+import { Capacitor } from '@capacitor/core';
+import { useProductUnits } from '@/lib/useStore';
 
 interface Props {
   open: boolean;
@@ -20,9 +22,24 @@ interface Props {
   offImageUrl?: string;
 }
 
+async function translateText(text: string, from: 'el' | 'en', to: 'el' | 'en'): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0, 300))}&langpair=${from}|${to}`,
+      { signal: AbortSignal.timeout(3000) }
+    );
+    const data = await res.json();
+    if (data.responseStatus === 200 && data.responseData?.translatedText) {
+      return data.responseData.translatedText;
+    }
+  } catch { /* offline - silent fail */ }
+  return null;
+}
+
 export default function ProductForm({ open, onClose, onSave, product, offImageUrl }: Props) {
   const { t, lang } = useI18n();
   const { customCategories, allCategoryKeys } = useCustomCategories();
+  const { allUnits } = useProductUnits();
   const { products } = useProducts();
   const [name, setName] = useState(product?.name || '');
   const [nameEn, setNameEn] = useState(product?.nameEn || '');
@@ -44,6 +61,7 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
       setAlternatives(product?.alternatives || []);
     }
   }, [open]);
+  const [translating, setTranslating] = useState(false);
   const [altSearch, setAltSearch] = useState('');
   const [scannerOpen, setScannerOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -107,7 +125,16 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
     e.target.value = '';
   }, []);
 
-  const startVoiceInput = useCallback(() => {
+  const startVoiceInput = useCallback(async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(t => t.stop());
+      } catch {
+        toast({ title: t('voiceInput'), description: lang === 'el' ? 'Δεν δόθηκε άδεια μικροφώνου.' : 'Microphone permission denied.' });
+        return;
+      }
+    }
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       toast({ title: t('voiceInput'), description: 'Η φωνητική εισαγωγή δεν υποστηρίζεται σε αυτόν τον browser.' });
@@ -127,14 +154,23 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
     recognitionRef.current = recognition;
     recognition.start();
     setIsListening(true);
-  }, [t]);
+  }, [t, lang]);
 
   const stopVoiceInput = useCallback(() => {
     recognitionRef.current?.stop();
     setIsListening(false);
   }, []);
 
-  const startEnVoiceInput = useCallback(() => {
+  const startEnVoiceInput = useCallback(async () => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach(t => t.stop());
+      } catch {
+        toast({ title: t('voiceInput'), description: lang === 'el' ? 'Δεν δόθηκε άδεια μικροφώνου.' : 'Microphone permission denied.' });
+        return;
+      }
+    }
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       toast({ title: t('voiceInput'), description: 'Voice input not supported in this browser.' });
@@ -154,7 +190,7 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
     recognitionRef.current = recognition;
     recognition.start();
     setIsListeningEn(true);
-  }, [t]);
+  }, [t, lang]);
 
   const stopEnVoiceInput = useCallback(() => {
     recognitionRef.current?.stop();
@@ -170,6 +206,22 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
   const removeAlternative = useCallback((pid: string) => {
     setAlternatives(prev => prev.filter(id => id !== pid));
   }, []);
+
+  const handleNameElBlur = useCallback(async () => {
+  if (!name.trim() || nameEn.trim()) return;
+  setTranslating(true);
+  const result = await translateText(name.trim(), 'el', 'en');
+  if (result) setNameEn(result);
+  setTranslating(false);
+}, [name, nameEn]);
+
+const handleNameEnBlur = useCallback(async () => {
+  if (!nameEn.trim() || name.trim()) return;
+  setTranslating(true);
+  const result = await translateText(nameEn.trim(), 'en', 'el');
+  if (result) setName(result);
+  setTranslating(false);
+}, [name, nameEn]);
 
   return (
     <>
@@ -209,12 +261,14 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
             </div>
 
             {/* Name with voice */}
+            <div className={lang === 'en' ? 'flex flex-col-reverse gap-4' : 'flex flex-col gap-4'}>
             <div className="space-y-1.5">
               <Label className="text-xs font-medium">{t('productName')} (EL)</Label>
               <div className="flex gap-2">
                 <Input
                   value={name}
                   onChange={e => setName(e.target.value)}
+                  onBlur={handleNameElBlur}
                   placeholder="π.χ. Γάλα"
                   className="h-10 flex-1"
                   lang="el"
@@ -244,11 +298,15 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
               )}
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium">{t('productName')} (EN)</Label>
+              <Label className="text-xs font-medium">
+                {t('productName')} (EN)
+                {translating && <span className="text-[10px] text-muted-foreground ml-2 animate-pulse">⟳ μεταφράζεται...</span>}
+              </Label>
               <div className="flex gap-2">
                 <Input
                   value={nameEn}
                   onChange={e => setNameEn(e.target.value)}
+                  onBlur={handleNameEnBlur}
                   placeholder="e.g. Milk"
                   className="h-10 flex-1"
                   lang="en"
@@ -277,6 +335,7 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
                 </p>
               )}
             </div>
+            </div>
             <div className="flex gap-3">
               <div className="flex-1 space-y-1.5">
                 <Label className="text-xs font-medium">{t('category')}</Label>
@@ -294,7 +353,7 @@ export default function ProductForm({ open, onClose, onSave, product, offImageUr
                 <Select value={unit} onValueChange={v => setUnit(v as ProductUnit)}>
                   <SelectTrigger ><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {PRODUCT_UNITS.map(u => (
+                    {allUnits.map(u => (
                       <SelectItem key={u} value={u}>{u}</SelectItem>
                     ))}
                   </SelectContent>
