@@ -4,8 +4,8 @@
   "description": "Έξυπνη λίστα ψωνιών με παρακολούθηση τιμών",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#267a52",
+  "background_color": "#0a0118",
+  "theme_color": "#39398E",
   "icons": [
     {
       "src": "/icon-512.png",
